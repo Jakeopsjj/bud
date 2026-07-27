@@ -73,14 +73,14 @@ fun GlassCard(
         modifier = modifier
             .background(
                 color = bgColor,
-                shape = RoundedCornerShape(32.dp)
+                shape = RoundedCornerShape(24.dp)
             )
             .border(
-                width = 1.5.dp,
+                width = 1.dp,
                 color = borderColor,
-                shape = RoundedCornerShape(32.dp)
+                shape = RoundedCornerShape(24.dp)
             )
-            .padding(24.dp),
+            .padding(16.dp),
         contentAlignment = Alignment.CenterStart,
         content = content
     )

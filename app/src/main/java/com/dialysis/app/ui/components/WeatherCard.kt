@@ -26,36 +26,36 @@ fun WeatherCard(weather: WeatherInfo) {
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
                 text = "☀️",
-                fontSize = 56.sp
+                fontSize = 36.sp
             )
             Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
                         text = "${weather.temperature}°C",
-                        fontSize = 42.sp,
+                        fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextWhite
                     )
                     Text(
                         text = weather.description,
-                        fontSize = 36.sp,
+                        fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextWhite,
-                        modifier = Modifier.padding(bottom = 2.dp)
+                        modifier = Modifier.padding(bottom = 1.dp)
                     )
                 }
                 Text(
                     text = "湿度 ${weather.humidity}% · ${weather.windDirection}风 ${weather.windLevel}",
-                    fontSize = 20.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = TextWhiteSecondary
                 )

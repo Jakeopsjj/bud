@@ -13,7 +13,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dialysis.app.ui.theme.*
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
 data class DialysisInfo(
@@ -42,76 +41,70 @@ fun DialysisCard(dialysis: DialysisInfo) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
                 text = "下次透析",
-                fontSize = 20.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = TextWhiteSecondary
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
-
             Text(
                 text = timeStr,
-                fontSize = 28.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextWhite
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
-
             Row(
                 verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
                     text = "${daysLeft}",
-                    fontSize = 72.sp,
+                    fontSize = 44.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextWhite,
-                    lineHeight = 72.sp
+                    lineHeight = 44.sp
                 )
                 Text(
                     text = "天",
-                    fontSize = 28.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
                     color = TextWhiteSecondary,
-                    modifier = Modifier.padding(bottom = 10.dp)
+                    modifier = Modifier.padding(bottom = 6.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "${hoursLeft}",
-                    fontSize = 72.sp,
+                    fontSize = 44.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextWhite,
-                    lineHeight = 72.sp
+                    lineHeight = 44.sp
                 )
                 Text(
                     text = "时",
-                    fontSize = 28.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
                     color = TextWhiteSecondary,
-                    modifier = Modifier.padding(bottom = 10.dp)
+                    modifier = Modifier.padding(bottom = 6.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
-
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.LocationOn,
                     contentDescription = "地点",
                     tint = TextWhiteSecondary,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(16.dp)
                 )
                 Text(
                     text = dialysis.location,
-                    fontSize = 20.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = TextWhiteSecondary
                 )
