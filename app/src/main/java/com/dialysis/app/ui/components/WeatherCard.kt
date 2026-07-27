@@ -1,17 +1,10 @@
 package com.dialysis.app.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Air
-import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material3.*
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,84 +20,46 @@ data class WeatherInfo(
 
 @Composable
 fun WeatherCard(weather: WeatherInfo) {
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        isWeather = true
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(CardStart, CardEnd)
-                    )
-                )
-                .padding(20.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column {
-                Text(
-                    text = "天气",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = PrimaryDark,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "☀️",
+                fontSize = 56.sp
+            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Column {
-                        Text(
-                            text = "${weather.temperature}°C",
-                            fontSize = 48.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = OnBackground
-                        )
-                        Text(
-                            text = weather.description,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = TextSecondary
-                        )
-                    }
-                    Column(
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        WeatherDetailItem(
-                            icon = Icons.Default.WaterDrop,
-                            label = "湿度",
-                            value = "${weather.humidity}%"
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        WeatherDetailItem(
-                            icon = Icons.Default.Air,
-                            label = "${weather.windDirection}风",
-                            value = weather.windLevel
-                        )
-                    }
+                    Text(
+                        text = "${weather.temperature}°C",
+                        fontSize = 42.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextWhite
+                    )
+                    Text(
+                        text = weather.description,
+                        fontSize = 36.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextWhite,
+                        modifier = Modifier.padding(bottom = 2.dp)
+                    )
                 }
+                Text(
+                    text = "湿度 ${weather.humidity}% · ${weather.windDirection}风 ${weather.windLevel}",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextWhiteSecondary
+                )
             }
         }
-    }
-}
-
-@Composable
-private fun WeatherDetailItem(icon: ImageVector, label: String, value: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = Primary,
-            modifier = Modifier.size(20.dp)
-        )
-        Text(
-            text = "$label $value",
-            style = MaterialTheme.typography.bodyMedium,
-            color = OnBackground
-        )
     }
 }

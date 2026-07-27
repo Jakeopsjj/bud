@@ -1,16 +1,13 @@
 package com.dialysis.app.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,93 +21,100 @@ data class DialysisInfo(
     val location: String
 )
 
+private val weekdayNames = arrayOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
+
 @Composable
 fun DialysisCard(dialysis: DialysisInfo) {
     val now = LocalDateTime.now()
-    val daysLeft = ChronoUnit.DAYS.between(now.toLocalDate(), dialysis.nextTime.toLocalDate())
-    val hoursLeft = ChronoUnit.HOURS.between(now, dialysis.nextTime) % 24
-    val timeFormatter = DateTimeFormatter.ofPattern("MM月dd日 HH:mm")
+    val totalHours = ChronoUnit.HOURS.between(now, dialysis.nextTime)
+    val daysLeft = totalHours / 24
+    val hoursLeft = totalHours % 24
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    val month = dialysis.nextTime.monthValue
+    val day = dialysis.nextTime.dayOfMonth
+    val weekday = weekdayNames[dialysis.nextTime.dayOfWeek.value % 7]
+    val hour = dialysis.nextTime.hour
+    val minute = dialysis.nextTime.minute
+
+    val timeStr = "${month}月${day}日 ${weekday} ${String.format("%02d:%02d", hour, minute)}"
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(DialysisCardStart, DialysisCardEnd)
-                    )
-                )
-                .padding(20.dp)
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Column {
+            Text(
+                text = "下次透析",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Medium,
+                color = TextWhiteSecondary
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = timeStr,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextWhite
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(
-                    text = "下次透析",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = SecondaryDark,
-                    fontWeight = FontWeight.SemiBold
+                    text = "${daysLeft}",
+                    fontSize = 72.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextWhite,
+                    lineHeight = 72.sp
                 )
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AccessTime,
-                                contentDescription = "时间",
-                                tint = Secondary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Text(
-                                text = dialysis.nextTime.format(timeFormatter),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = OnBackground
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = "地点",
-                                tint = Secondary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Text(
-                                text = dialysis.location,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = TextSecondary
-                            )
-                        }
-                    }
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "${daysLeft}天${hoursLeft}小时",
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = SecondaryDark
-                        )
-                        Text(
-                            text = "倒计时",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextSecondary
-                        )
-                    }
-                }
+                Text(
+                    text = "天",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextWhiteSecondary,
+                    modifier = Modifier.padding(bottom = 10.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "${hoursLeft}",
+                    fontSize = 72.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextWhite,
+                    lineHeight = 72.sp
+                )
+                Text(
+                    text = "时",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextWhiteSecondary,
+                    modifier = Modifier.padding(bottom = 10.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = "地点",
+                    tint = TextWhiteSecondary,
+                    modifier = Modifier.size(22.dp)
+                )
+                Text(
+                    text = dialysis.location,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextWhiteSecondary
+                )
             }
         }
     }

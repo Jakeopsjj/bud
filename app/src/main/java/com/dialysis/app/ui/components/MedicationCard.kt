@@ -1,25 +1,22 @@
 package com.dialysis.app.ui.components
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Medication
-import androidx.compose.material.icons.filled.Pending
-import androidx.compose.material3.*
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.dialysis.app.ui.theme.*
 import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 
 data class Medication(
     val name: String,
@@ -29,52 +26,55 @@ data class Medication(
 )
 
 data class MedicationInfo(
-    val medications: List<Medication>
+    val medications: List<Medication> = emptyList()
 )
 
 @Composable
 fun MedicationCard(medicationInfo: MedicationInfo) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    GlassCard(
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(MedicationCardStart, MedicationCardEnd)
-                    )
-                )
-                .padding(20.dp)
+        Column(
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    MedKitIcon()
                     Text(
                         text = "今日用药",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = androidx.compose.ui.graphics.Color(0xFF7B1FA2),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    val takenCount = medicationInfo.medications.count { it.taken }
-                    Text(
-                        text = "$takenCount/${medicationInfo.medications.size} 已服用",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextWhite
                     )
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.heightIn(max = 280.dp)
+                Text(
+                    text = "共${medicationInfo.medications.size}种",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextWhiteSecondary
+                )
+            }
+
+            if (medicationInfo.medications.isEmpty()) {
+                Text(
+                    text = "暂无用药记录，请添加用药信息",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextWhiteTertiary
+                )
+            } else {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(medicationInfo.medications) { medication ->
-                        MedicationItem(medication)
+                    medicationInfo.medications.forEach { med ->
+                        MedicationItem(med)
                     }
                 }
             }
@@ -83,58 +83,77 @@ fun MedicationCard(medicationInfo: MedicationInfo) {
 }
 
 @Composable
-private fun MedicationItem(medication: Medication) {
-    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-    val cardColor = if (medication.taken) {
-        androidx.compose.ui.graphics.Color(0xFFE8F5E9)
-    } else {
-        Surface
+private fun MedKitIcon() {
+    Canvas(modifier = Modifier.size(28.dp)) {
+        val w = size.width
+        val h = size.height
+        val path = Path().apply {
+            moveTo(w * 0.15f, h * 0.25f)
+            lineTo(w * 0.85f, h * 0.25f)
+            lineTo(w * 0.85f, h * 0.85f)
+            lineTo(w * 0.15f, h * 0.85f)
+            close()
+        }
+        drawPath(
+            path = path,
+            color = Color.White.copy(alpha = 0.9f),
+            style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round)
+        )
+        drawLine(
+            color = Color.White.copy(alpha = 0.9f),
+            start = Offset(w * 0.5f, h * 0.25f),
+            end = Offset(w * 0.5f, h * 0.15f),
+            strokeWidth = 2.5.dp.toPx(),
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = Color.White.copy(alpha = 0.9f),
+            start = Offset(w * 0.35f, h * 0.15f),
+            end = Offset(w * 0.65f, h * 0.15f),
+            strokeWidth = 2.5.dp.toPx(),
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = Color.White.copy(alpha = 0.9f),
+            start = Offset(w * 0.5f, h * 0.4f),
+            end = Offset(w * 0.5f, h * 0.7f),
+            strokeWidth = 2.5.dp.toPx(),
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = Color.White.copy(alpha = 0.9f),
+            start = Offset(w * 0.35f, h * 0.55f),
+            end = Offset(w * 0.65f, h * 0.55f),
+            strokeWidth = 2.5.dp.toPx(),
+            cap = StrokeCap.Round
+        )
     }
-    val iconColor = if (medication.taken) Secondary else Warning
+}
 
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = cardColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+@Composable
+private fun MedicationItem(medication: Medication) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Medication,
-                    contentDescription = medication.name,
-                    tint = iconColor,
-                    modifier = Modifier.size(24.dp)
-                )
-                Column {
-                    Text(
-                        text = medication.name,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium,
-                        textDecoration = if (medication.taken) TextDecoration.LineThrough else null,
-                        color = if (medication.taken) TextSecondary else OnBackground
-                    )
-                    Text(
-                        text = "${medication.dosage} · ${medication.time.format(timeFormatter)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary
-                    )
-                }
-            }
-            Icon(
-                imageVector = if (medication.taken) Icons.Default.Check else Icons.Default.Pending,
-                contentDescription = if (medication.taken) "已服用" else "待服用",
-                tint = iconColor,
-                modifier = Modifier.size(24.dp)
+        Column {
+            Text(
+                text = medication.name,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = if (medication.taken) TextWhiteTertiary else TextWhite
+            )
+            Text(
+                text = "${medication.dosage} · ${medication.time}",
+                fontSize = 14.sp,
+                color = TextWhiteMuted
             )
         }
+        Text(
+            text = if (medication.taken) "✓" else "○",
+            fontSize = 18.sp,
+            color = if (medication.taken) AccentGreen else TextWhiteTertiary
+        )
     }
 }
