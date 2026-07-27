@@ -1,0 +1,25 @@
+package com.dialysis.app.ui.theme
+
+import androidx.compose.ui.graphics.Color
+
+val Primary = Color(0xFF2196F3)
+val PrimaryDark = Color(0xFF1976D2)
+val Secondary = Color(0xFF4CAF50)
+val SecondaryDark = Color(0xFF388E3C)
+val Error = Color(0xFFE53935)
+val Warning = Color(0xFFFF9800)
+val Background = Color(0xFFF5F7FA)
+val Surface = Color(0xFFFFFFFF)
+val OnPrimary = Color(0xFFFFFFFF)
+val OnSecondary = Color(0xFFFFFFFF)
+val OnBackground = Color(0xFF1A1A2E)
+val OnSurface = Color(0xFF1A1A2E)
+val CardStart = Color(0xFFE3F2FD)
+val CardEnd = Color(0xFFBBDEFB)
+val DialysisCardStart = Color(0xFFE8F5E9)
+val DialysisCardEnd = Color(0xFFC8E6C9)
+val VitalsCardStart = Color(0xFFFFF3E0)
+val VitalsCardEnd = Color(0xFFFFE0B2)
+val MedicationCardStart = Color(0xFFF3E5F5)
+val MedicationCardEnd = Color(0xFFE1BEE7)
+val TextSecondary = Color(0xFF757575)
