@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <color name="accent">#4CAF50</color>
-    <color name="primary">#2196F3</color>
-    <color name="primary_dark">#1976D2</color>
-    <string name="app_name">透析助手</string>
-    <style name="Theme.DialysisApp" parent="android:Theme.Material.Light.NoActionBar"/>
-</resources>
