@@ -179,36 +179,147 @@ private fun DrawScope.drawGlassEffects(
     val h = size.height
     val currentTime = timeNorm * 8f
     val dp = density
+    val bw = 1.2f * dp
 
-    // 简洁细边框
-    val borderW = 1f * dp
-    val borderAlpha = if (isWeather) 0.45f else 0.35f
+    // === 1. 对角渐变边框：左上亮白高光 → 右下微冷蓝折射 ===
+    val borderBrush = Brush.linearGradient(
+        colors = if (isWeather) {
+            listOf(
+                Color.White.copy(alpha = 0.85f),
+                Color.White.copy(alpha = 0.55f),
+                Color(0xFFB3E5FC).copy(alpha = 0.40f),
+                Color(0xFF81D4FA).copy(alpha = 0.30f)
+            )
+        } else {
+            listOf(
+                Color.White.copy(alpha = 0.75f),
+                Color.White.copy(alpha = 0.45f),
+                Color(0xFFE1F5FE).copy(alpha = 0.28f),
+                Color(0xFFB3E5FC).copy(alpha = 0.22f)
+            )
+        },
+        start = Offset.Zero,
+        end = Offset(w, h)
+    )
     drawRoundRect(
-        color = Color.White.copy(alpha = borderAlpha),
+        brush = borderBrush,
         topLeft = Offset.Zero,
         size = Size(w, h),
         cornerRadius = CornerRadius(cornerRadius),
-        style = Stroke(width = borderW)
+        style = Stroke(width = bw)
     )
 
-    // 底部柔和投影
-    drawRoundRect(
+    // === 2. 左上圆角区域亮白光晕（强烈边缘反光） ===
+    val cornerGlowR = cornerRadius * 2.2f
+    drawCircle(
+        brush = Brush.radialGradient(
+            colors = if (isWeather) {
+                listOf(
+                    Color.White.copy(alpha = 0.55f),
+                    Color.White.copy(alpha = 0.25f),
+                    Color.Transparent
+                )
+            } else {
+                listOf(
+                    Color.White.copy(alpha = 0.45f),
+                    Color.White.copy(alpha = 0.18f),
+                    Color.Transparent
+                )
+            },
+            center = Offset(cornerRadius, cornerRadius),
+            radius = cornerGlowR
+        ),
+        center = Offset(cornerRadius, cornerRadius),
+        radius = cornerGlowR,
+        blendMode = BlendMode.Plus
+    )
+
+    // === 3. 顶部内边缘反光：沿顶部弧线一道亮白光 ===
+    val topHighlightPath = Path().apply {
+        addRoundRect(
+            RoundRect(
+                rect = Rect(
+                    offset = Offset(bw * 2f, bw * 2f),
+                    size = Size(w - bw * 4f, 2.5f * dp)
+                ),
+                cornerRadius = CornerRadius(cornerRadius - bw * 2f)
+            )
+        )
+    }
+    drawPath(
+        path = topHighlightPath,
+        brush = Brush.horizontalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.0f),
+                Color.White.copy(alpha = if (isWeather) 0.65f else 0.55f),
+                Color.White.copy(alpha = if (isWeather) 0.65f else 0.55f),
+                Color.White.copy(alpha = 0.0f)
+            ),
+            startX = cornerRadius,
+            endX = w - cornerRadius
+        )
+    )
+
+    // === 4. 左侧内边缘反光 ===
+    val leftHighlightPath = Path().apply {
+        addRoundRect(
+            RoundRect(
+                rect = Rect(
+                    offset = Offset(bw * 2f, bw * 2f),
+                    size = Size(1.5f * dp, h - bw * 4f)
+                ),
+                cornerRadius = CornerRadius(cornerRadius - bw * 2f)
+            )
+        )
+    }
+    drawPath(
+        path = leftHighlightPath,
         brush = Brush.verticalGradient(
             colors = listOf(
-                Color.Transparent,
-                Color.Black.copy(alpha = 0.06f),
-                Color.Black.copy(alpha = 0.10f)
+                Color.White.copy(alpha = 0.0f),
+                Color.White.copy(alpha = if (isWeather) 0.45f else 0.35f),
+                Color.White.copy(alpha = 0.0f)
             ),
-            startY = h - 6f * dp,
-            endY = h + 4f * dp
-        ),
-        topLeft = Offset(-1f * dp, h - 4f * dp),
-        size = Size(w + 2f * dp, 8f * dp),
-        cornerRadius = CornerRadius(cornerRadius),
-        blendMode = BlendMode.Multiply
+            startY = cornerRadius,
+            endY = h - cornerRadius
+        )
     )
 
-    // 随机高光闪烁（大光晕，先画在底层）
+    // === 5. 内部对角光感叠加：左上更亮，右下微暗（模拟玻璃厚度/光照体积） ===
+    drawRoundRect(
+        brush = Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = if (isWeather) 0.10f else 0.08f),
+                Color.Transparent,
+                Color.Black.copy(alpha = if (isWeather) 0.08f else 0.05f)
+            ),
+            start = Offset.Zero,
+            end = Offset(w, h)
+        ),
+        topLeft = Offset(bw, bw),
+        size = Size(w - bw * 2f, h - bw * 2f),
+        cornerRadius = CornerRadius(cornerRadius - bw),
+        blendMode = BlendMode.Softlight
+    )
+
+    // === 6. 顶部-左侧整体亮边光晕（外发光感，左上方向） ===
+    drawRoundRect(
+        brush = Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = if (isWeather) 0.18f else 0.14f),
+                Color.Transparent,
+                Color.Transparent
+            ),
+            start = Offset.Zero,
+            end = Offset(w * 0.6f, h * 0.6f)
+        ),
+        topLeft = Offset(bw, bw),
+        size = Size(w - bw * 2f, h - bw * 2f),
+        cornerRadius = CornerRadius(cornerRadius - bw),
+        blendMode = BlendMode.Plus
+    )
+
+    // === 7. 随机高光闪烁（大光晕） ===
     for (hl in highlights) {
         val t = (currentTime / hl.periodSec) * 2f * PI.toFloat() + hl.phase
         val raw = sin(t)
@@ -235,7 +346,7 @@ private fun DrawScope.drawGlassEffects(
         }
     }
 
-    // 随机星星闪烁（小亮点，画在上层）
+    // === 8. 随机星星闪烁 ===
     for (s in sparkles) {
         val t = (currentTime / s.periodSec) * 2f * PI.toFloat() + s.phase
         val raw = sin(t)
@@ -309,26 +420,109 @@ fun GlassCardSmall(
                 val sh = size.height
                 val currentTime = time * 8f
                 val dpScale = density
-                val bw = 1f * dpScale
+                val bws = 1f * dpScale
 
+                // 对角渐变边框
+                val borderBrushS = Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.65f),
+                        Color.White.copy(alpha = 0.40f),
+                        Color(0xFFE1F5FE).copy(alpha = 0.22f),
+                        Color(0xFFB3E5FC).copy(alpha = 0.18f)
+                    ),
+                    start = Offset.Zero,
+                    end = Offset(sw, sh)
+                )
                 drawRoundRect(
-                    color = Color.White.copy(alpha = 0.32f),
+                    brush = borderBrushS,
                     topLeft = Offset.Zero,
                     size = Size(sw, sh),
                     cornerRadius = CornerRadius(crPx),
-                    style = Stroke(width = bw)
+                    style = Stroke(width = bws)
                 )
 
+                // 左上圆角光晕
+                val cgR = crPx * 2f
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.35f),
+                            Color.White.copy(alpha = 0.12f),
+                            Color.Transparent
+                        ),
+                        center = Offset(crPx, crPx),
+                        radius = cgR
+                    ),
+                    center = Offset(crPx, crPx),
+                    radius = cgR,
+                    blendMode = BlendMode.Plus
+                )
+
+                // 顶部内高光
+                drawRoundRect(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0f),
+                            Color.White.copy(alpha = 0.45f),
+                            Color.White.copy(alpha = 0.45f),
+                            Color.White.copy(alpha = 0f)
+                        ),
+                        startX = crPx,
+                        endX = sw - crPx
+                    ),
+                    topLeft = Offset(bws * 2f, bws * 2f),
+                    size = Size(sw - bws * 4f, 2f * dpScale),
+                    cornerRadius = CornerRadius(crPx - bws * 2f)
+                )
+
+                // 左侧内高光
                 drawRoundRect(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.08f)
-                        )
+                            Color.White.copy(alpha = 0f),
+                            Color.White.copy(alpha = 0.28f),
+                            Color.White.copy(alpha = 0f)
+                        ),
+                        startY = crPx,
+                        endY = sh - crPx
                     ),
-                    topLeft = Offset(-0.5f * dpScale, sh - 3f * dpScale),
-                    size = Size(sw + 1f * dpScale, 5f * dpScale),
-                    cornerRadius = CornerRadius(crPx)
+                    topLeft = Offset(bws * 2f, bws * 2f),
+                    size = Size(1.2f * dpScale, sh - bws * 4f),
+                    cornerRadius = CornerRadius(crPx - bws * 2f)
+                )
+
+                // 内部对角光感
+                drawRoundRect(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.07f),
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.04f)
+                        ),
+                        start = Offset.Zero,
+                        end = Offset(sw, sh)
+                    ),
+                    topLeft = Offset(bws, bws),
+                    size = Size(sw - bws * 2f, sh - bws * 2f),
+                    cornerRadius = CornerRadius(crPx - bws),
+                    blendMode = BlendMode.Softlight
+                )
+
+                // 左上方向整体亮边
+                drawRoundRect(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.12f),
+                            Color.Transparent,
+                            Color.Transparent
+                        ),
+                        start = Offset.Zero,
+                        end = Offset(sw * 0.6f, sh * 0.6f)
+                    ),
+                    topLeft = Offset(bws, bws),
+                    size = Size(sw - bws * 2f, sh - bws * 2f),
+                    cornerRadius = CornerRadius(crPx - bws),
+                    blendMode = BlendMode.Plus
                 )
 
                 for (hl in highlights) {
