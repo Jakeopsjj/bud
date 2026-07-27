@@ -1,12 +1,10 @@
 package com.dialysis.app.ui.components
 
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,8 +17,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.dialysis.app.ui.theme.*
-import kotlin.math.sin
-import kotlin.random.Random
 
 @Composable
 fun SkyBackground(modifier: Modifier = Modifier) {
@@ -54,12 +50,10 @@ private fun drawCloud(scope: DrawScope, center: Offset, radius: Float, alpha: Fl
     val cloudColor = Color.White.copy(alpha = alpha)
     val path = Path()
     val r = radius
-
-    path.addOval(androidx.compose.ui.geometry.Rect(center.x - r, center.y - r * 0.4f, center.x + r, center.y + r * 0.5f))
-    path.addOval(androidx.compose.ui.geometry.Rect(center.x - r * 1.3f, center.y - r * 0.2f, center.x - r * 0.3f, center.y + r * 0.4f))
-    path.addOval(androidx.compose.ui.geometry.Rect(center.x + r * 0.2f, center.y - r * 0.3f, center.x + r * 1.2f, center.y + r * 0.3f))
-    path.addOval(androidx.compose.ui.geometry.Rect(center.x - r * 0.5f, center.y - r * 0.6f, center.x + r * 0.5f, center.y + r * 0.2f))
-
+    path.addOval(Rect(center.x - r, center.y - r * 0.4f, center.x + r, center.y + r * 0.5f))
+    path.addOval(Rect(center.x - r * 1.3f, center.y - r * 0.2f, center.x - r * 0.3f, center.y + r * 0.4f))
+    path.addOval(Rect(center.x + r * 0.2f, center.y - r * 0.3f, center.x + r * 1.2f, center.y + r * 0.3f))
+    path.addOval(Rect(center.x - r * 0.5f, center.y - r * 0.6f, center.x + r * 0.5f, center.y + r * 0.2f))
     scope.drawPath(path, cloudColor)
 }
 
@@ -75,301 +69,115 @@ fun GlassCard(
     val density = LocalDensity.current
     val crPx = with(density) { cornerRadius.toPx() }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "sparkle")
-    val sparklePhase1 by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "s1"
-    )
-    val sparklePhase2 by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2500, delayMillis = 500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "s2"
-    )
-    val sparklePhase3 by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 4000, delayMillis = 1000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "s3"
-    )
-    val flowPhase by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 8000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "flow"
-    )
-
-    val sparkleSeeds = remember {
-        List(5) { Random.nextFloat() to Random.nextFloat() }
-    }
-
     Box(
         modifier = modifier
             .clip(shape)
             .then(
-                if (isWeather) Modifier.background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF1A5FB4).copy(alpha = 0.55f),
-                            Color(0xFF2980B9).copy(alpha = 0.40f),
-                            Color(0xFF3498DB).copy(alpha = 0.30f)
+                if (isWeather) {
+                    Modifier.background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFF0D47A1).copy(alpha = 0.35f),
+                                Color(0xFF1565C0).copy(alpha = 0.28f),
+                                Color(0xFF1976D2).copy(alpha = 0.22f)
+                            )
                         )
                     )
-                ) else Modifier.background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.35f),
-                            Color.White.copy(alpha = 0.20f),
-                            Color.White.copy(alpha = 0.10f)
+                } else {
+                    Modifier.background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.15f),
+                                Color.White.copy(alpha = 0.10f),
+                                Color.White.copy(alpha = 0.06f)
+                            )
                         )
                     )
-                )
+                }
             )
             .drawBehind {
-                drawLiquidGlassEffects(
-                    isWeather = isWeather,
-                    cornerRadius = crPx,
-                    sparklePhase1 = sparklePhase1,
-                    sparklePhase2 = sparklePhase2,
-                    sparklePhase3 = sparklePhase3,
-                    flowPhase = flowPhase,
-                    sparkleSeeds = sparkleSeeds
-                )
+                drawAppleGlassBorder(crPx, isWeather)
             },
         contentAlignment = Alignment.CenterStart
     ) {
         Box(modifier = Modifier.padding(contentPadding), content = content)
-
-        Canvas(modifier = Modifier.matchParentSize()) {
-            drawGlassBorder(crPx, isWeather)
-        }
     }
 }
 
-private fun DrawScope.drawLiquidGlassEffects(
-    isWeather: Boolean,
-    cornerRadius: Float,
-    sparklePhase1: Float,
-    sparklePhase2: Float,
-    sparklePhase3: Float,
-    flowPhase: Float,
-    sparkleSeeds: List<Pair<Float, Float>>
-) {
+private fun DrawScope.drawAppleGlassBorder(cornerRadius: Float, isWeather: Boolean) {
     val w = size.width
     val h = size.height
+    val borderW = 1.2.dp.toPx()
 
-    // 1. 内部高光条（对角线方向流动的光带 - 液态反光效果）
-    val flowX = -w * 0.5f + flowPhase * (w * 2f)
-    val highlightPath = Path().apply {
-        val bandWidth = w * 0.6f
-        addOval(
-            Rect(
-                offset = Offset(flowX, -h * 0.5f),
-                size = Size(bandWidth, h * 2f)
+    // 主边框：上白亮、两侧稍暗、底部略带暖金色
+    val borderBrush = Brush.verticalGradient(
+        colors = if (isWeather) {
+            listOf(
+                Color.White.copy(alpha = 0.85f),
+                Color.White.copy(alpha = 0.55f),
+                Color.White.copy(alpha = 0.30f),
+                Color(0xFFFFE0B2).copy(alpha = 0.35f)
             )
-        )
-    }
-    drawPath(
-        path = highlightPath,
-        brush = Brush.linearGradient(
-            colors = listOf(
-                Color.Transparent,
-                Color.White.copy(alpha = 0.12f),
-                Color.White.copy(alpha = 0.06f),
-                Color.Transparent
-            ),
-            start = Offset(flowX, 0f),
-            end = Offset(flowX + w * 0.3f, h)
-        ),
-        blendMode = BlendMode.Plus
-    )
-
-    // 2. 顶部边缘高光（模拟玻璃上沿反光）
-    val topHighlightBrush = Brush.verticalGradient(
-        colors = listOf(
-            Color.White.copy(alpha = 0.5f),
-            Color.White.copy(alpha = 0.15f),
-            Color.Transparent
-        ),
-        startY = 0f,
-        endY = 4.dp.toPx() * 3f
-    )
-    drawRoundRect(
-        brush = topHighlightBrush,
-        topLeft = Offset.Zero,
-        size = Size(w, 8.dp.toPx()),
-        cornerRadius = CornerRadius(cornerRadius),
-        blendMode = BlendMode.Plus
-    )
-
-    // 3. 左侧边缘高光
-    drawRoundRect(
-        brush = Brush.horizontalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.35f),
-                Color.White.copy(alpha = 0.08f),
-                Color.Transparent
+        } else {
+            listOf(
+                Color.White.copy(alpha = 0.75f),
+                Color.White.copy(alpha = 0.45f),
+                Color.White.copy(alpha = 0.20f),
+                Color(0xFFFFE0B2).copy(alpha = 0.25f)
             )
-        ),
-        topLeft = Offset.Zero,
-        size = Size(4.dp.toPx(), h),
-        cornerRadius = CornerRadius(cornerRadius),
-        blendMode = BlendMode.Plus
-    )
-
-    // 4. 底部暗边（模拟玻璃厚度阴影）
-    val bottomShadow = Brush.verticalGradient(
-        colors = listOf(
-            Color.Transparent,
-            Color.Black.copy(alpha = 0.08f),
-            Color.Black.copy(alpha = 0.15f)
-        ),
-        startY = h - 8.dp.toPx(),
-        endY = h
-    )
-    drawRoundRect(
-        brush = bottomShadow,
-        topLeft = Offset(0f, h - 10.dp.toPx()),
-        size = Size(w, 10.dp.toPx()),
-        cornerRadius = CornerRadius(cornerRadius)
-    )
-
-    // 5. 内部整体渐变覆盖（增加玻璃的折射厚度感）
-    if (!isWeather) {
-        drawRoundRect(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.15f),
-                    Color.Transparent
-                ),
-                center = Offset(w * 0.3f, h * 0.2f),
-                radius = w * 0.7f
-            ),
-            topLeft = Offset.Zero,
-            size = size,
-            cornerRadius = CornerRadius(cornerRadius),
-            blendMode = BlendMode.Plus
-        )
-    }
-
-    // 6. 星星闪烁高光
-    val phases = listOf(sparklePhase1, sparklePhase2, sparklePhase3, (sparklePhase1 + 0.7f) % 1f, (sparklePhase2 + 0.5f) % 1f)
-    sparkleSeeds.forEachIndexed { idx, (sx, sy) ->
-        val phase = phases[idx % phases.size]
-        val alpha = if (phase < 0.5f) {
-            (phase * 2f) * 0.7f + 0.3f
-        } else {
-            ((1f - phase) * 2f) * 0.7f + 0.3f
         }
-        val cx = sx * w
-        val cy = sy * h
-        val sparkleSize = 2.dp.toPx() + (phase * 3.dp.toPx())
-
-        val starColor = if (isWeather) {
-            Color.White.copy(alpha = alpha * 0.8f)
-        } else {
-            Color.White.copy(alpha = alpha * 0.9f)
-        }
-
-        // 十字星光
-        drawLine(
-            color = starColor,
-            start = Offset(cx - sparkleSize * 2f, cy),
-            end = Offset(cx + sparkleSize * 2f, cy),
-            strokeWidth = 1.dp.toPx(),
-            cap = StrokeCap.Round
-        )
-        drawLine(
-            color = starColor,
-            start = Offset(cx, cy - sparkleSize * 2f),
-            end = Offset(cx, cy + sparkleSize * 2f),
-            strokeWidth = 1.dp.toPx(),
-            cap = StrokeCap.Round
-        )
-        // 对角光
-        val diagLen = sparkleSize * 1.2f
-        drawLine(
-            color = starColor.copy(alpha = starColor.alpha * 0.5f),
-            start = Offset(cx - diagLen, cy - diagLen),
-            end = Offset(cx + diagLen, cy + diagLen),
-            strokeWidth = 0.5.dp.toPx(),
-            cap = StrokeCap.Round
-        )
-        drawLine(
-            color = starColor.copy(alpha = starColor.alpha * 0.5f),
-            start = Offset(cx + diagLen, cy - diagLen),
-            end = Offset(cx - diagLen, cy + diagLen),
-            strokeWidth = 0.5.dp.toPx(),
-            cap = StrokeCap.Round
-        )
-        // 中心点
-        drawCircle(
-            color = Color.White.copy(alpha = alpha),
-            radius = sparkleSize * 0.6f,
-            center = Offset(cx, cy),
-            blendMode = BlendMode.Plus
-        )
-    }
-}
-
-private fun DrawScope.drawGlassBorder(cornerRadius: Float, isWeather: Boolean) {
-    val w = size.width
-    val h = size.height
-    val borderWidth = 1.2.dp.toPx()
-
-    val borderColors = if (isWeather) {
-        listOf(
-            Color.White.copy(alpha = 0.9f),
-            Color.White.copy(alpha = 0.5f),
-            Color.White.copy(alpha = 0.25f),
-            Color.White.copy(alpha = 0.4f)
-        )
-    } else {
-        listOf(
-            Color.White.copy(alpha = 0.8f),
-            Color.White.copy(alpha = 0.35f),
-            Color.White.copy(alpha = 0.15f),
-            Color.White.copy(alpha = 0.25f)
-        )
-    }
-
-    val borderBrush = Brush.verticalGradient(colors = borderColors)
-
+    )
     drawRoundRect(
         brush = borderBrush,
         topLeft = Offset.Zero,
         size = Size(w, h),
         cornerRadius = CornerRadius(cornerRadius),
-        style = Stroke(width = borderWidth)
+        style = Stroke(width = borderW)
     )
 
-    val shadowAlpha = if (isWeather) 0.08f else 0.12f
+    // 顶部内高光：极细的亮白线
+    val highlightH = 0.8.dp.toPx()
+    val topHighlightPath = Path().apply {
+        addRoundRect(
+            RoundRect(
+                rect = Rect(
+                    offset = Offset(borderW * 1.5f, borderW * 1.5f),
+                    size = Size(w - borderW * 3f, highlightH + 2.dp.toPx())
+                ),
+                cornerRadius = CornerRadius(cornerRadius * 0.8f)
+            )
+        )
+    }
+    drawPath(
+        path = topHighlightPath,
+        color = Color.White.copy(alpha = if (isWeather) 0.5f else 0.4f),
+    )
+
+    // 左上高光小弧：更亮
+    drawLine(
+        color = Color.White.copy(alpha = if (isWeather) 0.6f else 0.5f),
+        start = Offset(cornerRadius * 0.8f, borderW),
+        end = Offset(w - cornerRadius * 0.8f, borderW),
+        strokeWidth = 0.6.dp.toPx(),
+        cap = StrokeCap.Round,
+        blendMode = BlendMode.Plus
+    )
+
+    // 外投影（底部柔和阴影）
     drawRoundRect(
-        brush = Brush.radialGradient(
+        brush = Brush.verticalGradient(
             colors = listOf(
-                Color.Black.copy(alpha = shadowAlpha),
-                Color.Transparent
+                Color.Transparent,
+                Color.Black.copy(alpha = 0.06f),
+                Color.Black.copy(alpha = 0.10f)
             ),
-            center = Offset(w * 0.5f, h + 6.dp.toPx()),
-            radius = w * 0.6f
+            startY = h - 6.dp.toPx(),
+            endY = h + 4.dp.toPx()
         ),
-        topLeft = Offset(-2.dp.toPx(), h * 0.5f),
-        size = Size(w + 4.dp.toPx(), h * 0.5f + 8.dp.toPx()),
-        cornerRadius = CornerRadius(cornerRadius + 2.dp.toPx())
+        topLeft = Offset(-1.dp.toPx(), h - 4.dp.toPx()),
+        size = Size(w + 2.dp.toPx(), 8.dp.toPx()),
+        cornerRadius = CornerRadius(cornerRadius),
+        blendMode = BlendMode.Multiply
     )
 }
 
@@ -382,85 +190,53 @@ fun GlassCardSmall(
     val density = LocalDensity.current
     val crPx = with(density) { 20.dp.toPx() }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "sparkle_small")
-    val sparklePhase by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "ss"
-    )
-
-    val sparklePos = remember { Random.nextFloat() to Random.nextFloat() }
-
     Box(
         modifier = modifier
             .clip(shape)
             .background(
-                Brush.verticalGradient(
+                brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.35f),
-                        Color.White.copy(alpha = 0.18f),
-                        Color.White.copy(alpha = 0.08f)
+                        Color.White.copy(alpha = 0.15f),
+                        Color.White.copy(alpha = 0.10f),
+                        Color.White.copy(alpha = 0.06f)
                     )
                 )
             )
             .drawBehind {
                 val sw = size.width
                 val sh = size.height
+                val bw = 1.dp.toPx()
 
+                val borderBrush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.7f),
+                        Color.White.copy(alpha = 0.4f),
+                        Color.White.copy(alpha = 0.2f),
+                        Color(0xFFFFE0B2).copy(alpha = 0.22f)
+                    )
+                )
                 drawRoundRect(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.45f),
-                            Color.White.copy(alpha = 0.1f),
-                            Color.Transparent
-                        )
-                    ),
+                    brush = borderBrush,
                     topLeft = Offset.Zero,
-                    size = Size(sw, 5.dp.toPx()),
+                    size = Size(sw, sh),
                     cornerRadius = CornerRadius(crPx),
-                    blendMode = BlendMode.Plus
+                    style = Stroke(width = bw)
                 )
 
+                val highlightH = 0.6.dp.toPx()
                 drawRoundRect(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.3f),
-                            Color.Transparent
-                        )
-                    ),
-                    topLeft = Offset.Zero,
-                    size = Size(3.dp.toPx(), sh),
-                    cornerRadius = CornerRadius(crPx),
-                    blendMode = BlendMode.Plus
+                    color = Color.White.copy(alpha = 0.35f),
+                    topLeft = Offset(bw * 1.5f, bw * 1.5f),
+                    size = Size(sw - bw * 3f, highlightH + 1.5.dp.toPx()),
+                    cornerRadius = CornerRadius(crPx * 0.8f)
                 )
-
-                val alpha = (kotlin.math.sin(sparklePhase * Math.PI * 2).toFloat() + 1f) / 2f
-                val scx = sparklePos.first * sw
-                val scy = sparklePos.second * sh
-                val ss = 1.5.dp.toPx() + sparklePhase * 2.dp.toPx()
 
                 drawLine(
-                    color = Color.White.copy(alpha = alpha * 0.7f),
-                    start = Offset(scx - ss * 2f, scy),
-                    end = Offset(scx + ss * 2f, scy),
-                    strokeWidth = 0.8.dp.toPx(),
-                    cap = StrokeCap.Round
-                )
-                drawLine(
-                    color = Color.White.copy(alpha = alpha * 0.7f),
-                    start = Offset(scx, scy - ss * 2f),
-                    end = Offset(scx, scy + ss * 2f),
-                    strokeWidth = 0.8.dp.toPx(),
-                    cap = StrokeCap.Round
-                )
-                drawCircle(
-                    color = Color.White.copy(alpha = alpha * 0.8f),
-                    radius = ss * 0.5f,
-                    center = Offset(scx, scy),
+                    color = Color.White.copy(alpha = 0.45f),
+                    start = Offset(crPx * 0.7f, bw),
+                    end = Offset(sw - crPx * 0.7f, bw),
+                    strokeWidth = 0.5.dp.toPx(),
+                    cap = StrokeCap.Round,
                     blendMode = BlendMode.Plus
                 )
 
@@ -468,27 +244,14 @@ fun GlassCardSmall(
                     brush = Brush.verticalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            Color.Black.copy(alpha = 0.1f)
+                            Color.Black.copy(alpha = 0.08f)
                         )
                     ),
-                    topLeft = Offset(0f, sh - 6.dp.toPx()),
-                    size = Size(sw, 6.dp.toPx()),
+                    topLeft = Offset(-0.5.dp.toPx(), sh - 3.dp.toPx()),
+                    size = Size(sw + 1.dp.toPx(), 5.dp.toPx()),
                     cornerRadius = CornerRadius(crPx)
                 )
             }
-            .then(
-                Modifier.border(
-                    width = 1.dp,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.7f),
-                            Color.White.copy(alpha = 0.25f),
-                            Color.White.copy(alpha = 0.15f)
-                        )
-                    ),
-                    shape = shape
-                )
-            )
             .padding(horizontal = 10.dp, vertical = 10.dp),
         content = content
     )
