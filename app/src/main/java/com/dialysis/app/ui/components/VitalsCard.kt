@@ -162,20 +162,10 @@ private fun VitalSmallCard(
     centerContent: (@Composable () -> Unit)? = null,
     bottomContent: (@Composable () -> Unit)? = null
 ) {
-    Box(
+    GlassCardSmall(
         modifier = modifier
             .width(84.dp)
             .height(96.dp)
-            .background(
-                color = GlassWhite,
-                shape = RoundedCornerShape(20.dp)
-            )
-            .border(
-                width = 1.dp,
-                color = GlassBorder,
-                shape = RoundedCornerShape(20.dp)
-            )
-            .padding(10.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
