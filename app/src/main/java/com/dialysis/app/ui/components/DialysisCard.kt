@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,21 +39,22 @@ fun DialysisCard(dialysis: DialysisInfo) {
     val timeStr = "${month}月${day}日 ${weekday} ${String.format("%02d:%02d", hour, minute)}"
 
     GlassCard(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Text(
                 text = "下次透析",
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 color = TextWhiteSecondary
             )
 
             Text(
                 text = timeStr,
-                fontSize = 18.sp,
+                fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextWhite
             )
@@ -63,32 +65,32 @@ fun DialysisCard(dialysis: DialysisInfo) {
             ) {
                 Text(
                     text = "${daysLeft}",
-                    fontSize = 44.sp,
+                    fontSize = 38.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextWhite,
-                    lineHeight = 44.sp
+                    lineHeight = 38.sp
                 )
                 Text(
                     text = "天",
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     color = TextWhiteSecondary,
-                    modifier = Modifier.padding(bottom = 6.dp)
+                    modifier = Modifier.padding(bottom = 5.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "${hoursLeft}",
-                    fontSize = 44.sp,
+                    fontSize = 38.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextWhite,
-                    lineHeight = 44.sp
+                    lineHeight = 38.sp
                 )
                 Text(
                     text = "时",
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     color = TextWhiteSecondary,
-                    modifier = Modifier.padding(bottom = 6.dp)
+                    modifier = Modifier.padding(bottom = 5.dp)
                 )
             }
 
@@ -100,11 +102,11 @@ fun DialysisCard(dialysis: DialysisInfo) {
                     imageVector = Icons.Default.LocationOn,
                     contentDescription = "地点",
                     tint = TextWhiteSecondary,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(14.dp)
                 )
                 Text(
                     text = dialysis.location,
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                     color = TextWhiteSecondary
                 )

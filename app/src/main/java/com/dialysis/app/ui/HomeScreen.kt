@@ -44,8 +44,8 @@ fun HomeScreen() {
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .systemBarsPadding()
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             WeatherCard(weather = weather)
             DialysisCard(dialysis = dialysis)

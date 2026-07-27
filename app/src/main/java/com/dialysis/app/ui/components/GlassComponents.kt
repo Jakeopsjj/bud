@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -64,6 +65,8 @@ private fun drawCloud(scope: DrawScope, center: Offset, radius: Float, alpha: Fl
 fun GlassCard(
     modifier: Modifier = Modifier,
     isWeather: Boolean = false,
+    contentPadding: PaddingValues = PaddingValues(16.dp),
+    cornerRadius: androidx.compose.ui.unit.Dp = 24.dp,
     content: @Composable BoxScope.() -> Unit
 ) {
     val bgColor = if (isWeather) GlassWeatherBg else GlassWhite
@@ -73,14 +76,14 @@ fun GlassCard(
         modifier = modifier
             .background(
                 color = bgColor,
-                shape = RoundedCornerShape(24.dp)
+                shape = RoundedCornerShape(cornerRadius)
             )
             .border(
                 width = 1.dp,
                 color = borderColor,
-                shape = RoundedCornerShape(24.dp)
+                shape = RoundedCornerShape(cornerRadius)
             )
-            .padding(16.dp),
+            .padding(contentPadding),
         contentAlignment = Alignment.CenterStart,
         content = content
     )
