@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#2196F3">
+    <title>透析助手</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #F5F7FA;
+            color: #1A1A2E;
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+
+        .app {
+            max-width: 100%;
+            min-height: 100vh;
+        }
+
+        .topbar {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
+            padding: calc(env(safe-area-inset-top, 20px) + 16px) 20px 20px;
+            font-size: 20px;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+        }
+
+        .content {
+            padding: 16px;
+        }
+
+        .card {
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title .material-icons {
+            font-size: 20px;
+        }
+
+        .weather-card {
+            background: linear-gradient(135deg, #E3F2FD, #BBDEFB);
+        }
+
+        .weather-card .card-title {
+            color: #1976D2;
+        }
+
+        .weather-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .weather-temp {
+            font-size: 52px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .weather-desc {
+            font-size: 16px;
+            color: #757575;
+            margin-top: 4px;
+        }
+
+        .weather-details {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .weather-detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 15px;
+        }
+
+        .weather-detail-item .material-icons {
+            font-size: 20px;
+            color: #2196F3;
+        }
+
+        .dialysis-card {
+            background: linear-gradient(135deg, #E8F5E9, #C8E6C9);
+        }
+
+        .dialysis-card .card-title {
+            color: #388E3C;
+        }
+
+        .dialysis-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dialysis-info {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .dialysis-time, .dialysis-location {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dialysis-time {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .dialysis-location {
+            font-size: 15px;
+            color: #757575;
+        }
+
+        .dialysis-time .material-icons, .dialysis-location .material-icons {
+            font-size: 20px;
+            color: #4CAF50;
+        }
+
+        .dialysis-countdown {
+            text-align: center;
+        }
+
+        .countdown-value {
+            font-size: 26px;
+            font-weight: 700;
+            color: #388E3C;
+        }
+
+        .countdown-label {
+            font-size: 13px;
+            color: #757575;
+            margin-top: 2px;
+        }
+
+        .vitals-card {
+            background: linear-gradient(135deg, #FFF3E0, #FFE0B2);
+        }
+
+        .vitals-card .card-title {
+            color: #F57C00;
+        }
+
+        .vitals-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .vital-item {
+            background: white;
+            border-radius: 12px;
+            padding: 14px 10px;
+            text-align: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+
+        .vital-item .material-icons {
+            font-size: 28px;
+            color: #FF9800;
+            margin-bottom: 6px;
+        }
+
+        .vital-name {
+            font-size: 14px;
+            color: #757575;
+            margin-bottom: 4px;
+        }
+
+        .vital-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1A1A2E;
+        }
+
+        .vital-value.warning {
+            color: #E53935;
+        }
+
+        .vital-unit {
+            font-size: 11px;
+            color: #757575;
+            font-weight: 400;
+            margin-left: 2px;
+        }
+
+        .medication-card {
+            background: linear-gradient(135deg, #F3E5F5, #E1BEE7);
+        }
+
+        .medication-card .card-title {
+            color: #7B1FA2;
+            justify-content: space-between;
+        }
+
+        .med-progress {
+            font-size: 14px;
+            color: #757575;
+            font-weight: 400;
+        }
+
+        .med-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .med-item {
+            background: white;
+            border-radius: 12px;
+            padding: 12px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .med-item:active {
+            transform: scale(0.98);
+        }
+
+        .med-item.taken {
+            background: #E8F5E9;
+        }
+
+        .med-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .med-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .med-icon.pending {
+            background: #FFF3E0;
+        }
+
+        .med-icon.taken-icon {
+            background: #C8E6C9;
+        }
+
+        .med-icon .material-icons {
+            font-size: 20px;
+        }
+
+        .med-icon.pending .material-icons {
+            color: #FF9800;
+        }
+
+        .med-icon.taken-icon .material-icons {
+            color: #4CAF50;
+        }
+
+        .med-name {
+            font-size: 15px;
+            font-weight: 500;
+            color: #1A1A2E;
+        }
+
+        .med-item.taken .med-name {
+            color: #757575;
+            text-decoration: line-through;
+        }
+
+        .med-detail {
+            font-size: 13px;
+            color: #757575;
+            margin-top: 2px;
+        }
+
+        .med-status .material-icons {
+            font-size: 24px;
+        }
+
+        .med-status.pending .material-icons {
+            color: #FF9800;
+        }
+
+        .med-status.taken-status .material-icons {
+            color: #4CAF50;
+        }
+
+        .bottom-space {
+            height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="topbar">
+            透析助手
+        </div>
+
+        <div class="content">
+            <div class="card weather-card">
+                <div class="card-title">
+                    <span class="material-icons">wb_sunny</span>
+                    天气
+                </div>
+                <div class="weather-main">
+                    <div>
+                        <div class="weather-temp" id="temp">26°C</div>
+                        <div class="weather-desc" id="weatherDesc">多云</div>
+                    </div>
+                    <div class="weather-details">
+                        <div class="weather-detail-item">
+                            <span class="material-icons">water_drop</span>
+                            <span>湿度 <strong id="humidity">65%</strong></span>
+                        </div>
+                        <div class="weather-detail-item">
+                            <span class="material-icons">air</span>
+                            <span><strong id="windDir">东南</strong>风 <strong id="windLevel">3级</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card dialysis-card">
+                <div class="card-title">
+                    <span class="material-icons">event_available</span>
+                    下次透析
+                </div>
+                <div class="dialysis-main">
+                    <div class="dialysis-info">
+                        <div class="dialysis-time">
+                            <span class="material-icons">access_time</span>
+                            <span id="nextDialysisTime">07月28日 09:00</span>
+                        </div>
+                        <div class="dialysis-location">
+                            <span class="material-icons">location_on</span>
+                            <span id="dialysisLocation">市中心医院血液净化中心</span>
+                        </div>
+                    </div>
+                    <div class="dialysis-countdown">
+                        <div class="countdown-value" id="countdown">1天5小时</div>
+                        <div class="countdown-label">倒计时</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card vitals-card">
+                <div class="card-title">
+                    <span class="material-icons">monitor_heart</span>
+                    今日体征
+                </div>
+                <div class="vitals-grid">
+                    <div class="vital-item">
+                        <span class="material-icons">favorite</span>
+                        <div class="vital-name">心率</div>
+                        <div class="vital-value">78<span class="vital-unit">次/分</span></div>
+                    </div>
+                    <div class="vital-item">
+                        <span class="material-icons">bloodtype</span>
+                        <div class="vital-name">血压</div>
+                        <div class="vital-value">135/85<span class="vital-unit">mmHg</span></div>
+                    </div>
+                    <div class="vital-item">
+                        <span class="material-icons">monitor_weight</span>
+                        <div class="vital-name">体重</div>
+                        <div class="vital-value">62.5<span class="vital-unit">kg</span></div>
+                    </div>
+                    <div class="vital-item">
+                        <span class="material-icons">opacity</span>
+                        <div class="vital-name">超滤量</div>
+                        <div class="vital-value warning">2.8<span class="vital-unit">L</span></div>
+                    </div>
+                    <div class="vital-item" style="grid-column: 1 / -1;">
+                        <span class="material-icons">schedule</span>
+                        <div class="vital-name">透析时长</div>
+                        <div class="vital-value">4.0<span class="vital-unit">小时</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card medication-card">
+                <div class="card-title">
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <span class="material-icons">medication</span>
+                        今日用药
+                    </span>
+                    <span class="med-progress" id="medProgress">2/5 已服用</span>
+                </div>
+                <div class="med-list" id="medList">
+                </div>
+            </div>
+
+            <div class="bottom-space"></div>
+        </div>
+    </div>
+
+    <script>
+        const medications = [
+            { name: '硝苯地平缓释片', dosage: '20mg', time: '07:00', taken: true },
+            { name: '叶酸片', dosage: '5mg', time: '08:00', taken: true },
+            { name: '骨化三醇', dosage: '0.25μg', time: '12:00', taken: false },
+            { name: '降压药', dosage: '1片', time: '19:00', taken: false },
+            { name: '促红素', dosage: '3000U', time: '21:00', taken: false }
+        ];
+
+        function renderMedications() {
+            const medList = document.getElementById('medList');
+            medList.innerHTML = '';
+            medications.forEach((med, index) => {
+                const item = document.createElement('div');
+                item.className = `med-item ${med.taken ? 'taken' : ''}`;
+                item.onclick = () => toggleMedication(index);
+                item.innerHTML = `
+                    <div class="med-left">
+                        <div class="med-icon ${med.taken ? 'taken-icon' : 'pending'}">
+                            <span class="material-icons">medication</span>
+                        </div>
+                        <div>
+                            <div class="med-name">${med.name}</div>
+                            <div class="med-detail">${med.dosage} · ${med.time}</div>
+                        </div>
+                    </div>
+                    <div class="med-status ${med.taken ? 'taken-status' : 'pending'}">
+                        <span class="material-icons">${med.taken ? 'check_circle' : 'radio_button_unchecked'}</span>
+                    </div>
+                `;
+                medList.appendChild(item);
+            });
+            updateMedProgress();
+        }
+
+        function toggleMedication(index) {
+            medications[index].taken = !medications[index].taken;
+            renderMedications();
+        }
+
+        function updateMedProgress() {
+            const takenCount = medications.filter(m => m.taken).length;
+            document.getElementById('medProgress').textContent = `${takenCount}/${medications.length} 已服用`;
+        }
+
+        function updateCountdown() {
+            const now = new Date();
+            const next = new Date(now);
+            next.setDate(next.getDate() + 1);
+            next.setHours(9, 0, 0, 0);
+
+            const diff = next - now;
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+            let countdownText = '';
+            if (days > 0) {
+                countdownText = `${days}天${hours}小时`;
+            } else {
+                countdownText = `${hours}小时`;
+            }
+            document.getElementById('countdown').textContent = countdownText;
+        }
+
+        renderMedications();
+        updateCountdown();
+        setInterval(updateCountdown, 60000);
+    </script>
+</body>
+</html>
