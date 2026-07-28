@@ -87,9 +87,9 @@ fun GlassCard(
                     Modifier.background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                Color(0xFFF5F5F5).copy(alpha = 0.10f),
-                                Color(0xFFECECEC).copy(alpha = 0.07f),
-                                Color(0xFFE0E0E0).copy(alpha = 0.04f)
+                                Color(0xFFD0D2DA).copy(alpha = 0.14f),
+                                Color(0xFFC2C4CD).copy(alpha = 0.10f),
+                                Color(0xFFB4B6C1).copy(alpha = 0.07f)
                             )
                         )
                     )
@@ -171,9 +171,9 @@ fun GlassCardSmall(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFFF5F5F5).copy(alpha = 0.10f),
-                        Color(0xFFECECEC).copy(alpha = 0.07f),
-                        Color(0xFFE0E0E0).copy(alpha = 0.04f)
+                        Color(0xFFD0D2DA).copy(alpha = 0.14f),
+                        Color(0xFFC2C4CD).copy(alpha = 0.10f),
+                        Color(0xFFB4B6C1).copy(alpha = 0.07f)
                     )
                 )
             )
