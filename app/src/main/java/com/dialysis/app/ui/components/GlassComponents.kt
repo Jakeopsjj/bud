@@ -5,9 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.animation.core.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,71 +17,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.dialysis.app.ui.theme.*
-import kotlin.math.sin
-import kotlin.math.PI
-import kotlin.random.Random
-
-private data class Sparkle(
-    val nx: Float,
-    val ny: Float,
-    val sizeDp: Float,
-    val periodSec: Float,
-    val phase: Float,
-    val maxAlpha: Float
-)
-
-private data class GlowHighlight(
-    val nx: Float,
-    val ny: Float,
-    val radiusDp: Float,
-    val periodSec: Float,
-    val phase: Float,
-    val maxAlpha: Float
-)
-
-private data class LightSource(
-    val nx: Float,
-    val ny: Float,
-    val radiusScale: Float
-)
-
-private fun generateSparkles(count: Int, edgePadding: Float = 0.12f, rng: Random = Random.Default): List<Sparkle> {
-    return List(count) {
-        Sparkle(
-            nx = edgePadding + rng.nextFloat() * (1f - 2 * edgePadding),
-            ny = edgePadding + rng.nextFloat() * (1f - 2 * edgePadding),
-            sizeDp = 1.2f + rng.nextFloat() * 2.0f,
-            periodSec = 1.5f + rng.nextFloat() * 2.5f,
-            phase = rng.nextFloat() * (2f * PI.toFloat()),
-            maxAlpha = 0.4f + rng.nextFloat() * 0.5f
-        )
-    }
-}
-
-private fun generateHighlights(count: Int, edgePadding: Float = 0.2f, rng: Random = Random.Default): List<GlowHighlight> {
-    return List(count) {
-        GlowHighlight(
-            nx = edgePadding + rng.nextFloat() * (1f - 2 * edgePadding),
-            ny = edgePadding + rng.nextFloat() * (1f - 2 * edgePadding),
-            radiusDp = 18f + rng.nextFloat() * 25f,
-            periodSec = 2.5f + rng.nextFloat() * 3f,
-            phase = rng.nextFloat() * (2f * PI.toFloat()),
-            maxAlpha = 0.15f + rng.nextFloat() * 0.25f
-        )
-    }
-}
-
-private fun generateLightSource(rng: Random = Random.Default): LightSource {
-    return LightSource(
-        nx = 0.15f + rng.nextFloat() * 0.7f,
-        ny = 0.10f + rng.nextFloat() * 0.5f,
-        radiusScale = 0.9f + rng.nextFloat() * 0.4f
-    )
-}
-
-private val GlassWhiteTop = Color(0xFFE6E6EB).copy(alpha = 0.13f)
-private val GlassWhiteMid = Color(0xFFDADAE0).copy(alpha = 0.085f)
-private val GlassWhiteBot = Color(0xFFC8C8D2).copy(alpha = 0.05f)
 
 @Composable
 fun SkyBackground(modifier: Modifier = Modifier) {
@@ -137,21 +69,6 @@ fun GlassCard(
     val density = LocalDensity.current
     val crPx = with(density) { cornerRadius.toPx() }
 
-    val sparkles = remember { generateSparkles(if (isWeather) 8 else 6) }
-    val highlights = remember { generateHighlights(if (isWeather) 3 else 2) }
-    val lightSource = remember { generateLightSource() }
-
-    val transition = rememberInfiniteTransition(label = "glass_anim")
-    val time by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 8000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "t"
-    )
-
     Box(
         modifier = modifier
             .clip(shape)
@@ -160,9 +77,9 @@ fun GlassCard(
                     Modifier.background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                Color(0xFF0D47A1).copy(alpha = 0.35f),
-                                Color(0xFF1565C0).copy(alpha = 0.28f),
-                                Color(0xFF1976D2).copy(alpha = 0.22f)
+                                Color(0xFF0D47A1).copy(alpha = 0.40f),
+                                Color(0xFF1565C0).copy(alpha = 0.32f),
+                                Color(0xFF1976D2).copy(alpha = 0.25f)
                             )
                         )
                     )
@@ -170,16 +87,16 @@ fun GlassCard(
                     Modifier.background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                GlassWhiteTop,
-                                GlassWhiteMid,
-                                GlassWhiteBot
+                                Color(0xFFF5F5F5).copy(alpha = 0.10f),
+                                Color(0xFFECECEC).copy(alpha = 0.07f),
+                                Color(0xFFE0E0E0).copy(alpha = 0.04f)
                             )
                         )
                     )
                 }
             )
             .drawBehind {
-                drawGlassEffects(crPx, isWeather, sparkles, highlights, lightSource, time)
+                drawRefGlassBorder(crPx, isWeather)
             },
         contentAlignment = Alignment.CenterStart
     ) {
@@ -187,46 +104,29 @@ fun GlassCard(
     }
 }
 
-private fun DrawScope.drawGlassEffects(
-    cornerRadius: Float,
-    isWeather: Boolean,
-    sparkles: List<Sparkle>,
-    highlights: List<GlowHighlight>,
-    light: LightSource,
-    timeNorm: Float
-) {
+private fun DrawScope.drawRefGlassBorder(cornerRadius: Float, isWeather: Boolean) {
     val w = size.width
     val h = size.height
-    val currentTime = timeNorm * 8f
     val dp = density
-    val bw = 1.2f * dp
+    val bw = 1.5f * dp
 
-    val srcX = light.nx * w
-    val srcY = light.ny * h
-    val diagX = w - srcX
-    val diagY = h - srcY
-    val lightStart = Offset(srcX, srcY)
-    val lightEnd = Offset(diagX, diagY)
-
-    // === 1. 对角渐变边框：光源点亮白高光 → 对角微冷蓝折射 ===
-    val borderBrush = Brush.linearGradient(
+    // 边框垂直渐变：顶部亮白 → 中部淡 → 底部暖金(参考图边框颜色)
+    val borderBrush = Brush.verticalGradient(
         colors = if (isWeather) {
             listOf(
                 Color.White.copy(alpha = 0.85f),
-                Color.White.copy(alpha = 0.55f),
-                Color(0xFFB3E5FC).copy(alpha = 0.40f),
-                Color(0xFF81D4FA).copy(alpha = 0.30f)
+                Color.White.copy(alpha = 0.50f),
+                Color(0xFFEED9B8).copy(alpha = 0.55f),
+                Color(0xFFE8C9A0).copy(alpha = 0.60f)
             )
         } else {
             listOf(
-                Color.White.copy(alpha = 0.70f),
-                Color.White.copy(alpha = 0.42f),
-                Color(0xFFE1F5FE).copy(alpha = 0.24f),
-                Color(0xFFB3E5FC).copy(alpha = 0.18f)
+                Color.White.copy(alpha = 0.75f),
+                Color.White.copy(alpha = 0.40f),
+                Color(0xFFEED9B8).copy(alpha = 0.45f),
+                Color(0xFFE8C9A0).copy(alpha = 0.50f)
             )
-        },
-        start = lightStart,
-        end = lightEnd
+        }
     )
     drawRoundRect(
         brush = borderBrush,
@@ -236,151 +136,24 @@ private fun DrawScope.drawGlassEffects(
         style = Stroke(width = bw)
     )
 
-    // === 2. 光源点附近强烈反光晕（模拟光打在玻璃边缘的反射） ===
-    val srcGlowR = cornerRadius * 2.2f * light.radiusScale
-    drawCircle(
-        brush = Brush.radialGradient(
-            colors = if (isWeather) {
-                listOf(
-                    Color.White.copy(alpha = 0.50f),
-                    Color.White.copy(alpha = 0.22f),
-                    Color.Transparent
-                )
-            } else {
-                listOf(
-                    Color.White.copy(alpha = 0.40f),
-                    Color.White.copy(alpha = 0.16f),
-                    Color.Transparent
-                )
-            },
-            center = lightStart,
-            radius = srcGlowR
-        ),
-        center = lightStart,
-        radius = srcGlowR,
-        blendMode = BlendMode.Plus
-    )
-
-    // === 3. 顶部内边缘反光：沿顶部弧线一道亮白光（固定向上反射天空光） ===
-    val topHighlightPath = Path().apply {
-        addRoundRect(
-            RoundRect(
-                rect = Rect(
-                    offset = Offset(bw * 2f, bw * 2f),
-                    size = Size(w - bw * 4f, 2.2f * dp)
-                ),
-                cornerRadius = CornerRadius(cornerRadius - bw * 2f)
-            )
-        )
-    }
-    drawPath(
-        path = topHighlightPath,
+    // 顶部内高光：极细亮白，沿顶部圆角
+    val hlH = 0.6f * dp
+    drawRoundRect(
         brush = Brush.horizontalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.0f),
-                Color.White.copy(alpha = if (isWeather) 0.55f else 0.45f),
-                Color.White.copy(alpha = if (isWeather) 0.55f else 0.45f),
-                Color.White.copy(alpha = 0.0f)
+                Color.White.copy(alpha = 0f),
+                Color.White.copy(alpha = if (isWeather) 0.55f else 0.40f),
+                Color.White.copy(alpha = if (isWeather) 0.55f else 0.40f),
+                Color.White.copy(alpha = 0f)
             ),
             startX = cornerRadius,
             endX = w - cornerRadius
-        )
-    )
-
-    // === 4. 内部对角光感叠加：光源方向亮，对角微暗（模拟玻璃厚度/光照体积） ===
-    drawRoundRect(
-        brush = Brush.linearGradient(
-            colors = listOf(
-                Color.White.copy(alpha = if (isWeather) 0.09f else 0.07f),
-                Color.Transparent,
-                Color.Black.copy(alpha = if (isWeather) 0.07f else 0.045f)
-            ),
-            start = lightStart,
-            end = lightEnd
         ),
-        topLeft = Offset(bw, bw),
-        size = Size(w - bw * 2f, h - bw * 2f),
-        cornerRadius = CornerRadius(cornerRadius - bw),
-        blendMode = BlendMode.Softlight
-    )
-
-    // === 5. 光源方向大面积柔光（径向渐变，随机位置） ===
-    val softR = maxOf(w, h) * 0.8f * light.radiusScale
-    drawRoundRect(
-        brush = Brush.radialGradient(
-            colors = listOf(
-                Color.White.copy(alpha = if (isWeather) 0.16f else 0.12f),
-                Color.White.copy(alpha = if (isWeather) 0.07f else 0.05f),
-                Color.Transparent
-            ),
-            center = lightStart,
-            radius = softR
-        ),
-        topLeft = Offset(bw, bw),
-        size = Size(w - bw * 2f, h - bw * 2f),
-        cornerRadius = CornerRadius(cornerRadius - bw),
+        topLeft = Offset(bw * 1.5f, bw * 1.5f),
+        size = Size(w - bw * 3f, hlH),
+        cornerRadius = CornerRadius(cornerRadius - bw * 1.5f),
         blendMode = BlendMode.Plus
     )
-
-    // === 7. 随机高光闪烁（大光晕） ===
-    for (hl in highlights) {
-        val t = (currentTime / hl.periodSec) * 2f * PI.toFloat() + hl.phase
-        val raw = sin(t)
-        val pulse = if (raw > 0) raw * raw * raw * raw else 0f
-        val alpha = pulse * hl.maxAlpha
-        if (alpha > 0.01f) {
-            val cx = hl.nx * w
-            val cy = hl.ny * h
-            val radius = hl.radiusDp * dp
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = alpha),
-                        Color.White.copy(alpha = alpha * 0.4f),
-                        Color.Transparent
-                    ),
-                    center = Offset(cx, cy),
-                    radius = radius
-                ),
-                center = Offset(cx, cy),
-                radius = radius,
-                blendMode = BlendMode.Plus
-            )
-        }
-    }
-
-    // === 8. 随机星星闪烁 ===
-    for (s in sparkles) {
-        val t = (currentTime / s.periodSec) * 2f * PI.toFloat() + s.phase
-        val raw = sin(t)
-        val pulse = if (raw > 0) raw * raw else 0f
-        val alpha = pulse * s.maxAlpha
-        if (alpha > 0.02f) {
-            val cx = s.nx * w
-            val cy = s.ny * h
-            val r = s.sizeDp * dp
-            val centerAlpha = (alpha * 0.9f).coerceAtMost(1f)
-            drawCircle(
-                color = Color.White.copy(alpha = centerAlpha),
-                center = Offset(cx, cy),
-                radius = r,
-                blendMode = BlendMode.Plus
-            )
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = alpha * 0.6f),
-                        Color.Transparent
-                    ),
-                    center = Offset(cx, cy),
-                    radius = r * 3.5f
-                ),
-                center = Offset(cx, cy),
-                radius = r * 3.5f,
-                blendMode = BlendMode.Plus
-            )
-        }
-    }
 }
 
 @Composable
@@ -392,55 +165,31 @@ fun GlassCardSmall(
     val localDensity = LocalDensity.current
     val crPx = with(localDensity) { 20.dp.toPx() }
 
-    val sparkles = remember { generateSparkles(4, edgePadding = 0.15f) }
-    val highlights = remember { generateHighlights(1, edgePadding = 0.25f) }
-    val lightSource = remember { generateLightSource() }
-
-    val transition = rememberInfiniteTransition(label = "glass_s_anim")
-    val time by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 8000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "ts"
-    )
-
     Box(
         modifier = modifier
             .clip(shape)
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        GlassWhiteTop,
-                        GlassWhiteMid,
-                        GlassWhiteBot
+                        Color(0xFFF5F5F5).copy(alpha = 0.10f),
+                        Color(0xFFECECEC).copy(alpha = 0.07f),
+                        Color(0xFFE0E0E0).copy(alpha = 0.04f)
                     )
                 )
             )
             .drawBehind {
                 val sw = size.width
                 val sh = size.height
-                val currentTime = time * 8f
-                val dpScale = density
-                val bws = 1f * dpScale
+                val dpScale = this.density
+                val bws = 1.3f * dpScale
 
-                val srcXs = lightSource.nx * sw
-                val srcYs = lightSource.ny * sh
-                val lightStartS = Offset(srcXs, srcYs)
-                val lightEndS = Offset(sw - srcXs, sh - srcYs)
-
-                // 对角渐变边框
-                val borderBrushS = Brush.linearGradient(
+                val borderBrushS = Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.62f),
+                        Color.White.copy(alpha = 0.70f),
                         Color.White.copy(alpha = 0.38f),
-                        Color(0xFFE1F5FE).copy(alpha = 0.20f),
-                        Color(0xFFB3E5FC).copy(alpha = 0.15f)
-                    ),
-                    start = lightStartS,
-                    end = lightEndS
+                        Color(0xFFEED9B8).copy(alpha = 0.42f),
+                        Color(0xFFE8C9A0).copy(alpha = 0.48f)
+                    )
                 )
                 drawRoundRect(
                     brush = borderBrushS,
@@ -450,131 +199,22 @@ fun GlassCardSmall(
                     style = Stroke(width = bws)
                 )
 
-                // 光源点光晕
-                val cgR = crPx * 2f * lightSource.radiusScale
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.30f),
-                            Color.White.copy(alpha = 0.10f),
-                            Color.Transparent
-                        ),
-                        center = lightStartS,
-                        radius = cgR
-                    ),
-                    center = lightStartS,
-                    radius = cgR,
-                    blendMode = BlendMode.Plus
-                )
-
-                // 顶部内高光
                 drawRoundRect(
                     brush = Brush.horizontalGradient(
                         colors = listOf(
                             Color.White.copy(alpha = 0f),
-                            Color.White.copy(alpha = 0.38f),
-                            Color.White.copy(alpha = 0.38f),
+                            Color.White.copy(alpha = 0.35f),
+                            Color.White.copy(alpha = 0.35f),
                             Color.White.copy(alpha = 0f)
                         ),
                         startX = crPx,
                         endX = sw - crPx
                     ),
-                    topLeft = Offset(bws * 2f, bws * 2f),
-                    size = Size(sw - bws * 4f, 1.8f * dpScale),
-                    cornerRadius = CornerRadius(crPx - bws * 2f)
-                )
-
-                // 内部对角光感
-                drawRoundRect(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.06f),
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.04f)
-                        ),
-                        start = lightStartS,
-                        end = lightEndS
-                    ),
-                    topLeft = Offset(bws, bws),
-                    size = Size(sw - bws * 2f, sh - bws * 2f),
-                    cornerRadius = CornerRadius(crPx - bws),
-                    blendMode = BlendMode.Softlight
-                )
-
-                // 大面积光源柔光（径向）
-                val softRs = maxOf(sw, sh) * 0.8f * lightSource.radiusScale
-                drawRoundRect(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.10f),
-                            Color.White.copy(alpha = 0.04f),
-                            Color.Transparent
-                        ),
-                        center = lightStartS,
-                        radius = softRs
-                    ),
-                    topLeft = Offset(bws, bws),
-                    size = Size(sw - bws * 2f, sh - bws * 2f),
-                    cornerRadius = CornerRadius(crPx - bws),
+                    topLeft = Offset(bws * 1.5f, bws * 1.5f),
+                    size = Size(sw - bws * 3f, 0.5f * dpScale),
+                    cornerRadius = CornerRadius(crPx - bws * 1.5f),
                     blendMode = BlendMode.Plus
                 )
-
-                for (hl in highlights) {
-                    val t = (currentTime / hl.periodSec) * 2f * PI.toFloat() + hl.phase
-                    val raw = sin(t)
-                    val pulse = if (raw > 0) raw * raw * raw * raw else 0f
-                    val alpha = pulse * hl.maxAlpha
-                    if (alpha > 0.01f) {
-                        val cx = hl.nx * sw
-                        val cy = hl.ny * sh
-                        val radius = hl.radiusDp * 0.7f * dpScale
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = alpha),
-                                    Color.White.copy(alpha = alpha * 0.4f),
-                                    Color.Transparent
-                                ),
-                                center = Offset(cx, cy),
-                                radius = radius
-                            ),
-                            center = Offset(cx, cy),
-                            radius = radius,
-                            blendMode = BlendMode.Plus
-                        )
-                    }
-                }
-
-                for (s in sparkles) {
-                    val t = (currentTime / s.periodSec) * 2f * PI.toFloat() + s.phase
-                    val raw = sin(t)
-                    val pulse = if (raw > 0) raw * raw else 0f
-                    val alpha = pulse * s.maxAlpha
-                    if (alpha > 0.02f) {
-                        val cx = s.nx * sw
-                        val cy = s.ny * sh
-                        val r = s.sizeDp * 0.85f * dpScale
-                        drawCircle(
-                            color = Color.White.copy(alpha = (alpha * 0.9f).coerceAtMost(1f)),
-                            center = Offset(cx, cy),
-                            radius = r,
-                            blendMode = BlendMode.Plus
-                        )
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = alpha * 0.5f),
-                                    Color.Transparent
-                                ),
-                                center = Offset(cx, cy),
-                                radius = r * 3f
-                            ),
-                            center = Offset(cx, cy),
-                            radius = r * 3f,
-                            blendMode = BlendMode.Plus
-                        )
-                    }
-                }
             }
             .padding(horizontal = 10.dp, vertical = 10.dp),
         content = content
