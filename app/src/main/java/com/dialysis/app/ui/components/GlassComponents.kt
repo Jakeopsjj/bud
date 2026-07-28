@@ -42,6 +42,12 @@ private data class GlowHighlight(
     val maxAlpha: Float
 )
 
+private data class LightSource(
+    val nx: Float,
+    val ny: Float,
+    val radiusScale: Float
+)
+
 private fun generateSparkles(count: Int, edgePadding: Float = 0.12f, rng: Random = Random.Default): List<Sparkle> {
     return List(count) {
         Sparkle(
@@ -67,6 +73,18 @@ private fun generateHighlights(count: Int, edgePadding: Float = 0.2f, rng: Rando
         )
     }
 }
+
+private fun generateLightSource(rng: Random = Random.Default): LightSource {
+    return LightSource(
+        nx = 0.15f + rng.nextFloat() * 0.7f,
+        ny = 0.10f + rng.nextFloat() * 0.5f,
+        radiusScale = 0.9f + rng.nextFloat() * 0.4f
+    )
+}
+
+private val GlassWhiteTop = Color(0xFFE6E6EB).copy(alpha = 0.13f)
+private val GlassWhiteMid = Color(0xFFDADAE0).copy(alpha = 0.085f)
+private val GlassWhiteBot = Color(0xFFC8C8D2).copy(alpha = 0.05f)
 
 @Composable
 fun SkyBackground(modifier: Modifier = Modifier) {
@@ -121,6 +139,7 @@ fun GlassCard(
 
     val sparkles = remember { generateSparkles(if (isWeather) 8 else 6) }
     val highlights = remember { generateHighlights(if (isWeather) 3 else 2) }
+    val lightSource = remember { generateLightSource() }
 
     val transition = rememberInfiniteTransition(label = "glass_anim")
     val time by transition.animateFloat(
@@ -151,16 +170,16 @@ fun GlassCard(
                     Modifier.background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                Color.White.copy(alpha = 0.15f),
-                                Color.White.copy(alpha = 0.10f),
-                                Color.White.copy(alpha = 0.06f)
+                                GlassWhiteTop,
+                                GlassWhiteMid,
+                                GlassWhiteBot
                             )
                         )
                     )
                 }
             )
             .drawBehind {
-                drawGlassEffects(crPx, isWeather, sparkles, highlights, time)
+                drawGlassEffects(crPx, isWeather, sparkles, highlights, lightSource, time)
             },
         contentAlignment = Alignment.CenterStart
     ) {
@@ -173,6 +192,7 @@ private fun DrawScope.drawGlassEffects(
     isWeather: Boolean,
     sparkles: List<Sparkle>,
     highlights: List<GlowHighlight>,
+    light: LightSource,
     timeNorm: Float
 ) {
     val w = size.width
@@ -181,7 +201,14 @@ private fun DrawScope.drawGlassEffects(
     val dp = density
     val bw = 1.2f * dp
 
-    // === 1. 对角渐变边框：左上亮白高光 → 右下微冷蓝折射 ===
+    val srcX = light.nx * w
+    val srcY = light.ny * h
+    val diagX = w - srcX
+    val diagY = h - srcY
+    val lightStart = Offset(srcX, srcY)
+    val lightEnd = Offset(diagX, diagY)
+
+    // === 1. 对角渐变边框：光源点亮白高光 → 对角微冷蓝折射 ===
     val borderBrush = Brush.linearGradient(
         colors = if (isWeather) {
             listOf(
@@ -192,14 +219,14 @@ private fun DrawScope.drawGlassEffects(
             )
         } else {
             listOf(
-                Color.White.copy(alpha = 0.75f),
-                Color.White.copy(alpha = 0.45f),
-                Color(0xFFE1F5FE).copy(alpha = 0.28f),
-                Color(0xFFB3E5FC).copy(alpha = 0.22f)
+                Color.White.copy(alpha = 0.70f),
+                Color.White.copy(alpha = 0.42f),
+                Color(0xFFE1F5FE).copy(alpha = 0.24f),
+                Color(0xFFB3E5FC).copy(alpha = 0.18f)
             )
         },
-        start = Offset.Zero,
-        end = Offset(w, h)
+        start = lightStart,
+        end = lightEnd
     )
     drawRoundRect(
         brush = borderBrush,
@@ -209,38 +236,38 @@ private fun DrawScope.drawGlassEffects(
         style = Stroke(width = bw)
     )
 
-    // === 2. 左上圆角区域亮白光晕（强烈边缘反光） ===
-    val cornerGlowR = cornerRadius * 2.2f
+    // === 2. 光源点附近强烈反光晕（模拟光打在玻璃边缘的反射） ===
+    val srcGlowR = cornerRadius * 2.2f * light.radiusScale
     drawCircle(
         brush = Brush.radialGradient(
             colors = if (isWeather) {
                 listOf(
-                    Color.White.copy(alpha = 0.55f),
-                    Color.White.copy(alpha = 0.25f),
+                    Color.White.copy(alpha = 0.50f),
+                    Color.White.copy(alpha = 0.22f),
                     Color.Transparent
                 )
             } else {
                 listOf(
-                    Color.White.copy(alpha = 0.45f),
-                    Color.White.copy(alpha = 0.18f),
+                    Color.White.copy(alpha = 0.40f),
+                    Color.White.copy(alpha = 0.16f),
                     Color.Transparent
                 )
             },
-            center = Offset(cornerRadius, cornerRadius),
-            radius = cornerGlowR
+            center = lightStart,
+            radius = srcGlowR
         ),
-        center = Offset(cornerRadius, cornerRadius),
-        radius = cornerGlowR,
+        center = lightStart,
+        radius = srcGlowR,
         blendMode = BlendMode.Plus
     )
 
-    // === 3. 顶部内边缘反光：沿顶部弧线一道亮白光 ===
+    // === 3. 顶部内边缘反光：沿顶部弧线一道亮白光（固定向上反射天空光） ===
     val topHighlightPath = Path().apply {
         addRoundRect(
             RoundRect(
                 rect = Rect(
                     offset = Offset(bw * 2f, bw * 2f),
-                    size = Size(w - bw * 4f, 2.5f * dp)
+                    size = Size(w - bw * 4f, 2.2f * dp)
                 ),
                 cornerRadius = CornerRadius(cornerRadius - bw * 2f)
             )
@@ -251,8 +278,8 @@ private fun DrawScope.drawGlassEffects(
         brush = Brush.horizontalGradient(
             colors = listOf(
                 Color.White.copy(alpha = 0.0f),
-                Color.White.copy(alpha = if (isWeather) 0.65f else 0.55f),
-                Color.White.copy(alpha = if (isWeather) 0.65f else 0.55f),
+                Color.White.copy(alpha = if (isWeather) 0.55f else 0.45f),
+                Color.White.copy(alpha = if (isWeather) 0.55f else 0.45f),
                 Color.White.copy(alpha = 0.0f)
             ),
             startX = cornerRadius,
@@ -260,41 +287,16 @@ private fun DrawScope.drawGlassEffects(
         )
     )
 
-    // === 4. 左侧内边缘反光 ===
-    val leftHighlightPath = Path().apply {
-        addRoundRect(
-            RoundRect(
-                rect = Rect(
-                    offset = Offset(bw * 2f, bw * 2f),
-                    size = Size(1.5f * dp, h - bw * 4f)
-                ),
-                cornerRadius = CornerRadius(cornerRadius - bw * 2f)
-            )
-        )
-    }
-    drawPath(
-        path = leftHighlightPath,
-        brush = Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.0f),
-                Color.White.copy(alpha = if (isWeather) 0.45f else 0.35f),
-                Color.White.copy(alpha = 0.0f)
-            ),
-            startY = cornerRadius,
-            endY = h - cornerRadius
-        )
-    )
-
-    // === 5. 内部对角光感叠加：左上更亮，右下微暗（模拟玻璃厚度/光照体积） ===
+    // === 4. 内部对角光感叠加：光源方向亮，对角微暗（模拟玻璃厚度/光照体积） ===
     drawRoundRect(
         brush = Brush.linearGradient(
             colors = listOf(
-                Color.White.copy(alpha = if (isWeather) 0.10f else 0.08f),
+                Color.White.copy(alpha = if (isWeather) 0.09f else 0.07f),
                 Color.Transparent,
-                Color.Black.copy(alpha = if (isWeather) 0.08f else 0.05f)
+                Color.Black.copy(alpha = if (isWeather) 0.07f else 0.045f)
             ),
-            start = Offset.Zero,
-            end = Offset(w, h)
+            start = lightStart,
+            end = lightEnd
         ),
         topLeft = Offset(bw, bw),
         size = Size(w - bw * 2f, h - bw * 2f),
@@ -302,16 +304,17 @@ private fun DrawScope.drawGlassEffects(
         blendMode = BlendMode.Softlight
     )
 
-    // === 6. 顶部-左侧整体亮边光晕（外发光感，左上方向） ===
+    // === 5. 光源方向大面积柔光（径向渐变，随机位置） ===
+    val softR = maxOf(w, h) * 0.8f * light.radiusScale
     drawRoundRect(
-        brush = Brush.linearGradient(
+        brush = Brush.radialGradient(
             colors = listOf(
-                Color.White.copy(alpha = if (isWeather) 0.18f else 0.14f),
-                Color.Transparent,
+                Color.White.copy(alpha = if (isWeather) 0.16f else 0.12f),
+                Color.White.copy(alpha = if (isWeather) 0.07f else 0.05f),
                 Color.Transparent
             ),
-            start = Offset.Zero,
-            end = Offset(w * 0.6f, h * 0.6f)
+            center = lightStart,
+            radius = softR
         ),
         topLeft = Offset(bw, bw),
         size = Size(w - bw * 2f, h - bw * 2f),
@@ -391,6 +394,7 @@ fun GlassCardSmall(
 
     val sparkles = remember { generateSparkles(4, edgePadding = 0.15f) }
     val highlights = remember { generateHighlights(1, edgePadding = 0.25f) }
+    val lightSource = remember { generateLightSource() }
 
     val transition = rememberInfiniteTransition(label = "glass_s_anim")
     val time by transition.animateFloat(
@@ -409,9 +413,9 @@ fun GlassCardSmall(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.15f),
-                        Color.White.copy(alpha = 0.10f),
-                        Color.White.copy(alpha = 0.06f)
+                        GlassWhiteTop,
+                        GlassWhiteMid,
+                        GlassWhiteBot
                     )
                 )
             )
@@ -422,16 +426,21 @@ fun GlassCardSmall(
                 val dpScale = density
                 val bws = 1f * dpScale
 
+                val srcXs = lightSource.nx * sw
+                val srcYs = lightSource.ny * sh
+                val lightStartS = Offset(srcXs, srcYs)
+                val lightEndS = Offset(sw - srcXs, sh - srcYs)
+
                 // 对角渐变边框
                 val borderBrushS = Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.65f),
-                        Color.White.copy(alpha = 0.40f),
-                        Color(0xFFE1F5FE).copy(alpha = 0.22f),
-                        Color(0xFFB3E5FC).copy(alpha = 0.18f)
+                        Color.White.copy(alpha = 0.62f),
+                        Color.White.copy(alpha = 0.38f),
+                        Color(0xFFE1F5FE).copy(alpha = 0.20f),
+                        Color(0xFFB3E5FC).copy(alpha = 0.15f)
                     ),
-                    start = Offset.Zero,
-                    end = Offset(sw, sh)
+                    start = lightStartS,
+                    end = lightEndS
                 )
                 drawRoundRect(
                     brush = borderBrushS,
@@ -441,19 +450,19 @@ fun GlassCardSmall(
                     style = Stroke(width = bws)
                 )
 
-                // 左上圆角光晕
-                val cgR = crPx * 2f
+                // 光源点光晕
+                val cgR = crPx * 2f * lightSource.radiusScale
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.35f),
-                            Color.White.copy(alpha = 0.12f),
+                            Color.White.copy(alpha = 0.30f),
+                            Color.White.copy(alpha = 0.10f),
                             Color.Transparent
                         ),
-                        center = Offset(crPx, crPx),
+                        center = lightStartS,
                         radius = cgR
                     ),
-                    center = Offset(crPx, crPx),
+                    center = lightStartS,
                     radius = cgR,
                     blendMode = BlendMode.Plus
                 )
@@ -463,31 +472,15 @@ fun GlassCardSmall(
                     brush = Brush.horizontalGradient(
                         colors = listOf(
                             Color.White.copy(alpha = 0f),
-                            Color.White.copy(alpha = 0.45f),
-                            Color.White.copy(alpha = 0.45f),
+                            Color.White.copy(alpha = 0.38f),
+                            Color.White.copy(alpha = 0.38f),
                             Color.White.copy(alpha = 0f)
                         ),
                         startX = crPx,
                         endX = sw - crPx
                     ),
                     topLeft = Offset(bws * 2f, bws * 2f),
-                    size = Size(sw - bws * 4f, 2f * dpScale),
-                    cornerRadius = CornerRadius(crPx - bws * 2f)
-                )
-
-                // 左侧内高光
-                drawRoundRect(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0f),
-                            Color.White.copy(alpha = 0.28f),
-                            Color.White.copy(alpha = 0f)
-                        ),
-                        startY = crPx,
-                        endY = sh - crPx
-                    ),
-                    topLeft = Offset(bws * 2f, bws * 2f),
-                    size = Size(1.2f * dpScale, sh - bws * 4f),
+                    size = Size(sw - bws * 4f, 1.8f * dpScale),
                     cornerRadius = CornerRadius(crPx - bws * 2f)
                 )
 
@@ -495,12 +488,12 @@ fun GlassCardSmall(
                 drawRoundRect(
                     brush = Brush.linearGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.07f),
+                            Color.White.copy(alpha = 0.06f),
                             Color.Transparent,
                             Color.Black.copy(alpha = 0.04f)
                         ),
-                        start = Offset.Zero,
-                        end = Offset(sw, sh)
+                        start = lightStartS,
+                        end = lightEndS
                     ),
                     topLeft = Offset(bws, bws),
                     size = Size(sw - bws * 2f, sh - bws * 2f),
@@ -508,16 +501,17 @@ fun GlassCardSmall(
                     blendMode = BlendMode.Softlight
                 )
 
-                // 左上方向整体亮边
+                // 大面积光源柔光（径向）
+                val softRs = maxOf(sw, sh) * 0.8f * lightSource.radiusScale
                 drawRoundRect(
-                    brush = Brush.linearGradient(
+                    brush = Brush.radialGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.12f),
-                            Color.Transparent,
+                            Color.White.copy(alpha = 0.10f),
+                            Color.White.copy(alpha = 0.04f),
                             Color.Transparent
                         ),
-                        start = Offset.Zero,
-                        end = Offset(sw * 0.6f, sh * 0.6f)
+                        center = lightStartS,
+                        radius = softRs
                     ),
                     topLeft = Offset(bws, bws),
                     size = Size(sw - bws * 2f, sh - bws * 2f),
