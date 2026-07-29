@@ -1,11 +1,14 @@
 package com.dialysis.app.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.PaddingValues
@@ -24,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import com.dialysis.app.ui.theme.*
 
 data class MedItem(
+    val id: String,
     val name: String,
     val time: String,
     val isTaken: Boolean = false,
@@ -31,7 +35,10 @@ data class MedItem(
 )
 
 @Composable
-fun TodayMedication(meds: List<MedItem>) {
+fun TodayMedication(
+    meds: List<MedItem>,
+    onMedToggle: ((String) -> Unit)? = null
+) {
     LiquidGlassCard(
         modifier = Modifier.fillMaxWidth(),
         theme = GlassTheme.Sunny,
@@ -40,7 +47,6 @@ fun TodayMedication(meds: List<MedItem>) {
         Column(
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -53,25 +59,29 @@ fun TodayMedication(meds: List<MedItem>) {
                     fontWeight = FontWeight.SemiBold,
                     color = TextWhite
                 )
+                val takenCount = meds.count { it.isTaken }
                 Text(
-                    text = "共${meds.size}种",
+                    text = "$takenCount/${meds.size}已服用",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Normal,
-                    color = TextWhiteDim,
+                    color = AccentGreen,
                     modifier = Modifier.padding(start = 4.dp)
                 )
             }
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Med list
             Column(
                 modifier = Modifier
-                    .heightIn(max = 102.dp)
+                    .heightIn(max = 120.dp)
                     .verticalScroll(rememberScrollState())
             ) {
                 meds.forEachIndexed { index, med ->
-                    MedRow(med = med, showDivider = index > 0)
+                    MedRow(
+                        med = med,
+                        showDivider = index > 0,
+                        onClick = if (onMedToggle != null) { { onMedToggle(med.id) } } else null
+                    )
                 }
             }
         }
@@ -79,7 +89,11 @@ fun TodayMedication(meds: List<MedItem>) {
 }
 
 @Composable
-private fun MedRow(med: MedItem, showDivider: Boolean) {
+private fun MedRow(
+    med: MedItem,
+    showDivider: Boolean,
+    onClick: (() -> Unit)? = null
+) {
     Column {
         if (showDivider) {
             Box(
@@ -92,6 +106,15 @@ private fun MedRow(med: MedItem, showDivider: Boolean) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .then(
+                    if (onClick != null) {
+                        Modifier.clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onClick
+                        )
+                    } else Modifier
+                )
                 .padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
@@ -99,8 +122,8 @@ private fun MedRow(med: MedItem, showDivider: Boolean) {
             Text(
                 text = med.name,
                 fontSize = 12.sp,
-                fontWeight = FontWeight.Normal,
-                color = TextWhite,
+                fontWeight = if (med.isTaken) FontWeight.Normal else FontWeight.Normal,
+                color = if (med.isTaken) TextWhiteSecondary else TextWhite,
                 modifier = Modifier.weight(1f)
             )
             Row(
@@ -129,7 +152,9 @@ private fun MedRow(med: MedItem, showDivider: Boolean) {
                     }
                 }
                 if (med.isTaken) {
-                    CheckCircle(modifier = Modifier.size(14.dp))
+                    CheckCircle(modifier = Modifier.size(18.dp))
+                } else {
+                    EmptyCircle(modifier = Modifier.size(18.dp))
                 }
             }
         }
@@ -183,7 +208,6 @@ private fun CheckCircle(modifier: Modifier = Modifier) {
             radius = w * 0.5f,
             center = Offset(w / 2f, h / 2f)
         )
-        // Checkmark
         val sw = 2.2.dp.toPx()
         val path = Path().apply {
             moveTo(w * 0.28f, h * 0.52f)
@@ -191,5 +215,19 @@ private fun CheckCircle(modifier: Modifier = Modifier) {
             lineTo(w * 0.74f, h * 0.34f)
         }
         drawPath(path, Color.White, style = Stroke(width = sw, cap = StrokeCap.Round))
+    }
+}
+
+@Composable
+private fun EmptyCircle(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        drawCircle(
+            color = Color.White.copy(alpha = 0.3f),
+            radius = w * 0.42f,
+            center = Offset(w / 2f, h / 2f),
+            style = Stroke(width = 1.5.dp.toPx())
+        )
     }
 }

@@ -1,16 +1,22 @@
 package com.dialysis.app.ui
 
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,48 +24,44 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.dialysis.app.data.AppPreferences
 import com.dialysis.app.ui.components.*
 import com.dialysis.app.ui.theme.*
-
-data class EmergencyContact(
-    val name: String,
-    val role: String,
-    val avatarGradient: List<Color>,
-    val iconType: ContactIcon
-)
-
-enum class ContactIcon {
-    Phone, Person, Warning
-}
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun ContactsScreen(
     selectedTab: TabItem,
-    onTabSelected: (TabItem) -> Unit
+    onTabSelected: (TabItem) -> Unit,
+    prefs: AppPreferences
 ) {
-    val contacts = listOf(
-        EmergencyContact(
-            name = "李主任",
-            role = "主治医生",
-            avatarGradient = listOf(AccentBlue.copy(alpha = 0.4f), Color(0x405856D6)),
-            iconType = ContactIcon.Phone
-        ),
-        EmergencyContact(
-            name = "王小明",
-            role = "家属 · 儿子",
-            avatarGradient = listOf(AccentOrange.copy(alpha = 0.4f), AccentRed.copy(alpha = 0.4f)),
-            iconType = ContactIcon.Person
-        ),
-        EmergencyContact(
-            name = "血透中心",
-            role = "24小时值班",
-            avatarGradient = listOf(Color(0x40FFCC00), AccentOrange.copy(alpha = 0.4f)),
-            iconType = ContactIcon.Warning
-        )
-    )
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val contacts = remember { prefs.getEmergencyContacts() }
+
+    var showSosConfirm by remember { mutableStateOf(false) }
+    var sosCountdown by remember { mutableStateOf(0) }
+    var isSosPressed by remember { mutableStateOf(false) }
+
+    fun makeCall(phone: String) {
+        try {
+            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(context, "无法打开拨号：${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun call120() {
+        makeCall("120")
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         SkyBackground(theme = GlassTheme.Sos)
@@ -85,13 +87,38 @@ fun ContactsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // SOS button
-            SosButton()
+            // SOS button with long press
+            SosButton(
+                onSosTrigger = {
+                    showSosConfirm = true
+                    sosCountdown = 3
+                    scope.launch {
+                        for (i in 3 downTo 1) {
+                            sosCountdown = i
+                            delay(1000)
+                        }
+                        showSosConfirm = false
+                        call120()
+                        Toast.makeText(context, "正在拨打120急救电话", Toast.LENGTH_LONG).show()
+                    }
+                },
+                onPressChanged = { isSosPressed = it }
+            )
+
+            if (showSosConfirm) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "${sosCountdown}秒后自动拨打120，点击取消",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = AccentRed
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "紧急情况？长按按钮将自动呼叫120并通知紧急联系人",
+                text = "紧急情况？点击SOS按钮将自动拨打120急救电话\n同时请联系下方紧急联系人",
                 fontSize = 11.sp,
                 color = Color.White.copy(alpha = 0.6f),
                 lineHeight = 16.sp
@@ -110,7 +137,18 @@ fun ContactsScreen(
                 )
 
                 contacts.forEachIndexed { index, contact ->
-                    ContactItem(contact = contact)
+                    ContactItem(
+                        name = contact.name,
+                        role = contact.role,
+                        phone = contact.phone,
+                        avatarGradient = contact.avatarGradient.map { Color(it) },
+                        iconType = when (contact.name) {
+                            "李主任" -> ContactIconType.Doctor
+                            "血透中心", "急救中心" -> ContactIconType.Warning
+                            else -> ContactIconType.Person
+                        },
+                        onCall = { makeCall(contact.phone) }
+                    )
                     if (index < contacts.size - 1) {
                         Spacer(modifier = Modifier.height(8.dp))
                     }
@@ -125,10 +163,49 @@ fun ContactsScreen(
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
+
+    // SOS confirmation dialog
+    if (showSosConfirm) {
+        AlertDialog(
+            onDismissRequest = { showSosConfirm = false },
+            containerColor = Color(0xFF2A1515),
+            title = {
+                Text(
+                    text = "紧急呼叫确认",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "即将拨打120急救电话，并发送位置给紧急联系人。",
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSosConfirm = false
+                    call120()
+                }) {
+                    Text("立即拨打", color = AccentRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSosConfirm = false }) {
+                    Text("取消", color = TextWhiteSecondary)
+                }
+            }
+        )
+    }
 }
 
+enum class ContactIconType { Doctor, Person, Warning }
+
 @Composable
-private fun SosButton() {
+private fun SosButton(
+    onSosTrigger: () -> Unit,
+    onPressChanged: (Boolean) -> Unit
+) {
     val infiniteTransition = rememberInfiniteTransition(label = "sos_pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
@@ -153,7 +230,6 @@ private fun SosButton() {
         modifier = Modifier.size(160.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Pulse rings
         Canvas(modifier = Modifier.fillMaxSize()) {
             val center = Offset(size.width / 2, size.height / 2)
             val radius = size.minDimension / 2 * pulseScale
@@ -171,7 +247,6 @@ private fun SosButton() {
             )
         }
 
-        // Main button
         Box(
             modifier = Modifier
                 .size(160.dp)
@@ -186,13 +261,14 @@ private fun SosButton() {
                         center = Offset(0.5f, 0.3f)
                     )
                 )
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) { /* SOS action */ },
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onLongPress = { onSosTrigger() },
+                        onTap = { onSosTrigger() }
+                    )
+                },
             contentAlignment = Alignment.Center
         ) {
-            // Inner glow
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val center = Offset(size.width / 2, size.height * 0.3f)
                 drawCircle(
@@ -207,7 +283,6 @@ private fun SosButton() {
                     radius = size.minDimension * 0.5f,
                     center = center
                 )
-                // Border
                 drawCircle(
                     color = Color.White.copy(alpha = 0.3f),
                     radius = size.minDimension / 2 - 1.dp.toPx(),
@@ -227,7 +302,7 @@ private fun SosButton() {
                     letterSpacing = 4.sp
                 )
                 Text(
-                    text = "一键求助",
+                    text = "点击求助",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White.copy(alpha = 0.85f),
@@ -240,60 +315,66 @@ private fun SosButton() {
 }
 
 @Composable
-private fun ContactItem(contact: EmergencyContact) {
+private fun ContactItem(
+    name: String,
+    role: String,
+    phone: String,
+    avatarGradient: List<Color>,
+    iconType: ContactIconType,
+    onCall: () -> Unit
+) {
     LiquidGlassCard(
         theme = GlassTheme.Sos,
         hasSparkles = true,
         cornerRadius = 20.dp,
-        contentPadding = PaddingValues(12.dp, 12.dp)
+        contentPadding = PaddingValues(12.dp, 12.dp),
+        onClick = onCall
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Avatar
             Box(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
                     .background(
-                        brush = Brush.linearGradient(contact.avatarGradient)
+                        brush = Brush.linearGradient(avatarGradient)
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                when (contact.iconType) {
-                    ContactIcon.Phone -> PhoneAvatarIcon()
-                    ContactIcon.Person -> PersonAvatarIcon()
-                    ContactIcon.Warning -> WarningAvatarIcon()
+                when (iconType) {
+                    ContactIconType.Doctor -> PhoneAvatarIcon()
+                    ContactIconType.Person -> PersonAvatarIcon()
+                    ContactIconType.Warning -> WarningAvatarIcon()
                 }
             }
 
-            // Info
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = contact.name,
+                    text = name,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White
                 )
                 Text(
-                    text = contact.role,
+                    text = "$role · $phone",
                     fontSize = 10.sp,
                     color = Color.White.copy(alpha = 0.6f),
                     modifier = Modifier.padding(top = 1.dp)
                 )
             }
 
-            // Call button
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(32.dp)
                     .clip(CircleShape)
                     .background(AccentGreen.copy(alpha = 0.25f))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { /* Call action */ },
+                        indication = null,
+                        onClick = onCall
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 CallButtonIcon()
@@ -370,7 +451,7 @@ private fun WarningAvatarIcon() {
 
 @Composable
 private fun CallButtonIcon() {
-    Canvas(modifier = Modifier.size(14.dp)) {
+    Canvas(modifier = Modifier.size(16.dp)) {
         val w = size.width; val h = size.height
         val path = Path().apply {
             moveTo(w * 0.85f, h * 0.68f)
@@ -386,6 +467,6 @@ private fun CallButtonIcon() {
             cubicTo(w * 0.95f, h * 0.82f, w, h * 0.75f, w, h * 0.68f)
             lineTo(w * 0.85f, h * 0.68f)
         }
-        drawPath(path, AccentGreen, style = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+        drawPath(path, AccentGreen, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
     }
 }

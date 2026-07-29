@@ -1,5 +1,6 @@
 package com.dialysis.app.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -7,8 +8,9 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,11 +18,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import com.dialysis.app.data.AppPreferences
+import com.dialysis.app.data.BpRecord
 import com.dialysis.app.ui.components.*
 import com.dialysis.app.ui.theme.*
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 data class BpDayData(
     val day: String,
@@ -33,26 +43,48 @@ data class BpDayData(
 @Composable
 fun RecordsScreen(
     selectedTab: TabItem,
-    onTabSelected: (TabItem) -> Unit
+    onTabSelected: (TabItem) -> Unit,
+    prefs: AppPreferences
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var refreshKey by remember { mutableStateOf(0) }
+
     var selectedSegment by remember { mutableStateOf(0) }
     val segments = listOf("本周", "本月", "全部")
 
-    val bpData = listOf(
-        BpDayData("一", 130f, 85f),
-        BpDayData("二", 140f, 90f),
-        BpDayData("三", 135f, 82f),
-        BpDayData("四", 155f, 98f, isWarning = true),
-        BpDayData("五", 145f, 92f),
-        BpDayData("六", 138f, 88f),
-        BpDayData("今", 142f, 90f, isToday = true)
-    )
+    val bpRecords = remember(refreshKey) {
+        prefs.getBpRecords().takeLast(7)
+    }
+    val weightRecords = remember(refreshKey) {
+        prefs.getWeightRecords().takeLast(8)
+    }
+    val waterIntake = remember(refreshKey) { prefs.getTodayWaterIntake() }
+    val waterTarget = remember(refreshKey) { prefs.getWaterTarget() }
+    val waterProgress = (waterIntake.toFloat() / waterTarget.toFloat()).coerceIn(0f, 1f)
 
-    val weightData = listOf(63.0f, 63.2f, 62.8f, 62.3f, 62.5f, 62.8f, 62.5f, 62.3f)
-    val weightDays = listOf("一", "二", "三", "四", "五", "六", "日", "今")
-    val waterIntake = 850
-    val waterTarget = 1500
-    val waterProgress = waterIntake.toFloat() / waterTarget.toFloat()
+    val bpData = bpRecords.mapIndexed { index, r ->
+        val dayNames = arrayOf("一", "二", "三", "四", "五", "六", "日")
+        val date = LocalDate.parse(r.date, DateTimeFormatter.ISO_LOCAL_DATE)
+        val isWarning = r.systolic >= 150 || r.diastolic >= 95
+        val isToday = date == LocalDate.now()
+        val dayLabel = if (isToday) "今" else dayNames[date.dayOfWeek.value - 1]
+        BpDayData(dayLabel, r.systolic.toFloat(), r.diastolic.toFloat(), isWarning, isToday)
+    }
+
+    val weightData = weightRecords.map { it.weight }
+    val weightDays = weightRecords.map { r ->
+        val date = LocalDate.parse(r.date, DateTimeFormatter.ISO_LOCAL_DATE)
+        val dayNames = arrayOf("一", "二", "三", "四", "五", "六", "日")
+        if (date == LocalDate.now()) "今" else dayNames[date.dayOfWeek.value - 1]
+    }
+
+    val refresh: () -> Unit = { refreshKey++ }
+
+    // Dialogs
+    var showBpDialog by remember { mutableStateOf(false) }
+    var showWeightDialog by remember { mutableStateOf(false) }
+    var showWaterDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         SkyBackground(theme = GlassTheme.Cloudy)
@@ -95,7 +127,8 @@ fun RecordsScreen(
             LiquidGlassCard(
                 theme = GlassTheme.Cloudy,
                 hasSparkles = true,
-                contentPadding = PaddingValues(16.dp, 16.dp)
+                contentPadding = PaddingValues(16.dp, 16.dp),
+                onClick = { showBpDialog = true }
             ) {
                 Column {
                     Row(
@@ -115,16 +148,21 @@ fun RecordsScreen(
                                 color = TextWhite
                             )
                         }
-                        Text(
-                            text = "近7天",
-                            fontSize = 11.sp,
-                            color = TextWhiteTertiary
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "点击录入",
+                                fontSize = 11.sp,
+                                color = AccentBlueLight
+                            )
+                            AddIcon()
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // BP Bar chart
                     BpBarChart(data = bpData, modifier = Modifier.fillMaxWidth().height(80.dp))
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -169,7 +207,8 @@ fun RecordsScreen(
             // Weight tracking card
             LiquidGlassCard(
                 theme = GlassTheme.Cloudy,
-                contentPadding = PaddingValues(16.dp, 16.dp)
+                contentPadding = PaddingValues(16.dp, 16.dp),
+                onClick = { showWeightDialog = true }
             ) {
                 Column {
                     Row(
@@ -189,12 +228,27 @@ fun RecordsScreen(
                                 color = TextWhite
                             )
                         }
-                        Text(
-                            text = "↓ 0.2kg 较昨日",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = AccentGreen
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            val weightChange = if (weightRecords.size >= 2) {
+                                weightRecords.last().weight - weightRecords[weightRecords.size - 2].weight
+                            } else 0f
+                            val changeColor = if (weightChange < 0) AccentGreen else if (weightChange > 0) AccentOrange else TextWhiteTertiary
+                            val changeText = when {
+                                weightChange < 0 -> "↓ %.1fkg 较昨日".format(kotlin.math.abs(weightChange))
+                                weightChange > 0 -> "↑ %.1fkg 较昨日".format(weightChange)
+                                else -> "-- 较昨日"
+                            }
+                            Text(
+                                text = changeText,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = changeColor
+                            )
+                            AddIcon()
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -212,70 +266,91 @@ fun RecordsScreen(
                 theme = GlassTheme.Cloudy,
                 contentPadding = PaddingValues(16.dp, 16.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    // Circular progress
-                    Box(
-                        modifier = Modifier.size(84.dp),
-                        contentAlignment = Alignment.Center
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        CircularWaterProgress(
-                            progress = waterProgress,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
+                            WaterIcon()
                             Text(
-                                text = "$waterIntake",
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
+                                text = "今日饮水",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
                                 color = TextWhite
-                            )
-                            Text(
-                                text = "/ ${waterTarget}ml",
-                                fontSize = 10.sp,
-                                color = TextWhiteTertiary
                             )
                         }
                     }
 
-                    Column(
-                        modifier = Modifier.weight(1f)
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        Text(
-                            text = "今日饮水",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextWhite
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        Box(
+                            modifier = Modifier.size(84.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            GlassButton(
-                                text = "+100ml 水",
-                                onClick = {},
-                                modifier = Modifier.weight(1f)
+                            CircularWaterProgress(
+                                progress = waterProgress,
+                                modifier = Modifier.fillMaxSize()
                             )
-                            GlassButton(
-                                text = "+200ml 汤",
-                                onClick = {},
-                                modifier = Modifier.weight(1f)
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "$waterIntake",
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextWhite
+                                )
+                                Text(
+                                    text = "/ ${waterTarget}ml",
+                                    fontSize = 10.sp,
+                                    color = TextWhiteTertiary
+                                )
+                            }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                GlassButton(
+                                    text = "+100ml 水",
+                                    onClick = {
+                                        prefs.addWaterIntake(100)
+                                        refresh()
+                                        Toast.makeText(context, "已记录100ml饮水", Toast.LENGTH_SHORT).show()
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                GlassButton(
+                                    text = "+200ml 汤",
+                                    onClick = {
+                                        prefs.addWaterIntake(200)
+                                        refresh()
+                                        Toast.makeText(context, "已记录200ml汤/粥", Toast.LENGTH_SHORT).show()
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
 
-                        Text(
-                            text = "还可摄入 ${waterTarget - waterIntake}ml",
-                            fontSize = 10.sp,
-                            color = TextWhiteTertiary
-                        )
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = "还可摄入 ${(waterTarget - waterIntake).coerceAtLeast(0)}ml",
+                                fontSize = 10.sp,
+                                color = if (waterIntake > waterTarget) AccentRedSoft else TextWhiteTertiary
+                            )
+                        }
                     }
                 }
             }
@@ -287,6 +362,186 @@ fun RecordsScreen(
             theme = GlassTheme.Cloudy,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+    }
+
+    // BP Input Dialog
+    if (showBpDialog) {
+        BpInputDialog(
+            onDismiss = { showBpDialog = false },
+            onConfirm = { sys, dia ->
+                prefs.addBpRecord(sys, dia)
+                refresh()
+                showBpDialog = false
+                Toast.makeText(context, "血压已记录：${sys}/${dia}mmHg", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    if (showWeightDialog) {
+        WeightInputDialog(
+            onDismiss = { showWeightDialog = false },
+            onConfirm = { weight ->
+                prefs.addWeightRecord(weight)
+                refresh()
+                showWeightDialog = false
+                Toast.makeText(context, "体重已记录：${weight}kg", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+}
+
+@Composable
+private fun BpInputDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (Int, Int) -> Unit
+) {
+    var sysText by remember { mutableStateOf("") }
+    var diaText by remember { mutableStateOf("") }
+
+    Dialog(onDismissRequest = onDismiss) {
+        LiquidGlassCard(
+            theme = GlassTheme.Cloudy,
+            contentPadding = PaddingValues(20.dp, 20.dp),
+            cornerRadius = 24.dp
+        ) {
+            Column {
+                Text(
+                    text = "记录血压",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextWhite
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = sysText,
+                        onValueChange = { sysText = it.filter { c -> c.isDigit() }.take(3) },
+                        label = { Text("收缩压", color = TextWhiteSecondary, fontSize = 12.sp) },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = TextFieldDefaults.colors(
+                            focusedTextColor = TextWhite,
+                            unfocusedTextColor = TextWhite,
+                            cursorColor = AccentBlueLight,
+                            focusedIndicatorColor = AccentBlueLight,
+                            unfocusedIndicatorColor = TextWhiteTertiary,
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent
+                        )
+                    )
+                    OutlinedTextField(
+                        value = diaText,
+                        onValueChange = { diaText = it.filter { c -> c.isDigit() }.take(3) },
+                        label = { Text("舒张压", color = TextWhiteSecondary, fontSize = 12.sp) },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = TextFieldDefaults.colors(
+                            focusedTextColor = TextWhite,
+                            unfocusedTextColor = TextWhite,
+                            cursorColor = AccentBlueLight,
+                            focusedIndicatorColor = AccentBlueLight,
+                            unfocusedIndicatorColor = TextWhiteTertiary,
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent
+                        )
+                    )
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    GlassButton(
+                        text = "取消",
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    )
+                    GlassButton(
+                        text = "保存",
+                        onClick = {
+                            val sys = sysText.toIntOrNull()
+                            val dia = diaText.toIntOrNull()
+                            if (sys != null && dia != null && sys in 70..220 && dia in 40..140) {
+                                onConfirm(sys, dia)
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeightInputDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (Float) -> Unit
+) {
+    var weightText by remember { mutableStateOf("") }
+
+    Dialog(onDismissRequest = onDismiss) {
+        LiquidGlassCard(
+            theme = GlassTheme.Cloudy,
+            contentPadding = PaddingValues(20.dp, 20.dp),
+            cornerRadius = 24.dp
+        ) {
+            Column {
+                Text(
+                    text = "记录体重",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextWhite
+                )
+                Text(
+                    text = "单位：kg（如 62.5）",
+                    fontSize = 11.sp,
+                    color = TextWhiteTertiary,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = weightText,
+                    onValueChange = { weightText = it.filter { c -> c.isDigit() || c == '.' }.take(5) },
+                    label = { Text("体重", color = TextWhiteSecondary, fontSize = 12.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    colors = TextFieldDefaults.colors(
+                        focusedTextColor = TextWhite,
+                        unfocusedTextColor = TextWhite,
+                        cursorColor = AccentBlueLight,
+                        focusedIndicatorColor = AccentBlueLight,
+                        unfocusedIndicatorColor = TextWhiteTertiary,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    )
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    GlassButton(
+                        text = "取消",
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    )
+                    GlassButton(
+                        text = "保存",
+                        onClick = {
+                            val w = weightText.toFloatOrNull()
+                            if (w != null && w in 30f..200f) {
+                                onConfirm(w)
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -382,6 +637,31 @@ private fun WeightIcon() {
 }
 
 @Composable
+private fun WaterIcon() {
+    Canvas(modifier = Modifier.size(16.dp)) {
+        val w = size.width; val h = size.height; val sw = 1.8.dp.toPx()
+        val path = Path().apply {
+            moveTo(w * 0.5f, h * 0.05f)
+            cubicTo(w * 0.5f, h * 0.05f, w * 0.15f, h * 0.5f, w * 0.15f, h * 0.65f)
+            cubicTo(w * 0.15f, h * 0.85f, w * 0.3f, h * 0.95f, w * 0.5f, h * 0.95f)
+            cubicTo(w * 0.7f, h * 0.95f, w * 0.85f, h * 0.85f, w * 0.85f, h * 0.65f)
+            cubicTo(w * 0.85f, h * 0.5f, w * 0.5f, h * 0.05f, w * 0.5f, h * 0.05f)
+        }
+        drawPath(path, AccentBlueLight, style = Stroke(width = sw))
+    }
+}
+
+@Composable
+private fun AddIcon() {
+    Canvas(modifier = Modifier.size(14.dp)) {
+        val sw = 1.8.dp.toPx()
+        val c = AccentBlueLight
+        drawLine(c, Offset(size.width * 0.5f, size.height * 0.2f), Offset(size.width * 0.5f, size.height * 0.8f), strokeWidth = sw, cap = StrokeCap.Round)
+        drawLine(c, Offset(size.width * 0.2f, size.height * 0.5f), Offset(size.width * 0.8f, size.height * 0.5f), strokeWidth = sw, cap = StrokeCap.Round)
+    }
+}
+
+@Composable
 private fun BpBarChart(data: List<BpDayData>, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val barWidth = 8.dp.toPx()
@@ -402,14 +682,12 @@ private fun BpBarChart(data: List<BpDayData>, modifier: Modifier = Modifier) {
             }
             val diaColor = sysColor.copy(alpha = 0.5f)
 
-            // Diastolic (behind)
             drawRoundRect(
                 color = diaColor,
                 topLeft = Offset(x + barWidth + gap, chartH - diastolicH + 18.dp.toPx()),
                 size = Size(barWidth, diastolicH),
                 cornerRadius = CornerRadius(3.dp.toPx())
             )
-            // Systolic (front)
             drawRoundRect(
                 color = sysColor,
                 topLeft = Offset(x, chartH - systolicH + 18.dp.toPx()),
@@ -452,6 +730,7 @@ private fun BpBarChart(data: List<BpDayData>, modifier: Modifier = Modifier) {
 
 @Composable
 private fun WeightLineChart(data: List<Float>, days: List<String>, modifier: Modifier = Modifier) {
+    if (data.isEmpty()) return
     val minW = data.minOrNull() ?: 62f
     val maxW = data.maxOrNull() ?: 64f
     val range = (maxW - minW).coerceAtLeast(1f)
@@ -460,9 +739,8 @@ private fun WeightLineChart(data: List<Float>, days: List<String>, modifier: Mod
         Canvas(modifier = Modifier.fillMaxWidth().weight(1f)) {
             val w = size.width
             val h = size.height
-            val stepX = w / (data.size - 1)
+            val stepX = if (data.size > 1) w / (data.size - 1) else w
 
-            // Grid lines
             for (i in 0..2) {
                 val y = h * (0.2f + i * 0.3f)
                 drawLine(
@@ -473,11 +751,10 @@ private fun WeightLineChart(data: List<Float>, days: List<String>, modifier: Mod
                 )
             }
 
-            // Build path
             val linePath = Path()
             val fillPath = Path()
             val points = data.mapIndexed { index, value ->
-                val x = stepX * index
+                val x = if (data.size > 1) stepX * index else w / 2
                 val y = h - ((value - minW) / range) * (h * 0.8f) - h * 0.1f
                 Offset(x, y)
             }
@@ -500,9 +777,11 @@ private fun WeightLineChart(data: List<Float>, days: List<String>, modifier: Mod
                     )
                 }
             }
-            fillPath.lineTo(points.last().x, h)
-            fillPath.lineTo(points.first().x, h)
-            fillPath.close()
+            if (points.isNotEmpty()) {
+                fillPath.lineTo(points.last().x, h)
+                fillPath.lineTo(points.first().x, h)
+                fillPath.close()
+            }
 
             drawPath(
                 fillPath,
@@ -514,8 +793,6 @@ private fun WeightLineChart(data: List<Float>, days: List<String>, modifier: Mod
 
             points.forEachIndexed { index, point ->
                 val color = when {
-                    index == 3 -> AccentOrange
-                    index == points.size - 2 -> AccentGreen
                     index == points.size - 1 -> AccentBlue
                     else -> AccentBlueLight
                 }
@@ -527,16 +804,18 @@ private fun WeightLineChart(data: List<Float>, days: List<String>, modifier: Mod
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            days.forEach { day ->
-                Text(
-                    text = day,
-                    fontSize = 9.sp,
-                    color = TextWhiteTertiary
-                )
+        if (days.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                days.forEach { day ->
+                    Text(
+                        text = day,
+                        fontSize = 9.sp,
+                        color = TextWhiteTertiary
+                    )
+                }
             }
         }
     }
@@ -574,7 +853,7 @@ private fun CircularWaterProgress(progress: Float, modifier: Modifier = Modifier
 }
 
 @Composable
-private fun GlassButton(
+fun GlassButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
