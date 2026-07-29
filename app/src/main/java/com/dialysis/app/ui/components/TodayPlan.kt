@@ -1,11 +1,15 @@
 package com.dialysis.app.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -37,7 +41,9 @@ data class MedItem(
 @Composable
 fun TodayMedication(
     meds: List<MedItem>,
-    onMedToggle: ((String) -> Unit)? = null
+    onMedToggle: ((String) -> Unit)? = null,
+    onAddMed: (() -> Unit)? = null,
+    onDeleteMed: ((String) -> Unit)? = null
 ) {
     LiquidGlassCard(
         modifier = Modifier.fillMaxWidth(),
@@ -50,49 +56,114 @@ fun TodayMedication(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                CapsuleIcon(modifier = Modifier.size(14.dp))
-                Text(
-                    text = "今日用药",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextWhite
-                )
-                val takenCount = meds.count { it.isTaken }
-                Text(
-                    text = "$takenCount/${meds.size}已服用",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = AccentGreen,
-                    modifier = Modifier.padding(start = 4.dp)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    CapsuleIcon(modifier = Modifier.size(14.dp))
+                    Text(
+                        text = "今日用药",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextWhite
+                    )
+                    if (meds.isNotEmpty()) {
+                        val takenCount = meds.count { it.isTaken }
+                        Text(
+                            text = "$takenCount/${meds.size}已服用",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = AccentGreen,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
+                }
+                if (onAddMed != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = onAddMed
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AddMedIcon()
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            Column(
-                modifier = Modifier
-                    .heightIn(max = 120.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                meds.forEachIndexed { index, med ->
-                    MedRow(
-                        med = med,
-                        showDivider = index > 0,
-                        onClick = if (onMedToggle != null) { { onMedToggle(med.id) } } else null
-                    )
+            if (meds.isEmpty()) {
+                // Empty state
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "暂无用药记录",
+                            fontSize = 12.sp,
+                            color = TextWhiteSecondary
+                        )
+                        if (onAddMed != null) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color.White.copy(alpha = 0.15f))
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        onClick = onAddMed
+                                    )
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = "+ 添加用药",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = AccentBlueLight
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = 200.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    meds.forEachIndexed { index, med ->
+                        MedRow(
+                            med = med,
+                            showDivider = index > 0,
+                            onClick = if (onMedToggle != null) { { onMedToggle(med.id) } } else null,
+                            onLongClick = if (onDeleteMed != null) { { onDeleteMed(med.id) } } else null
+                        )
+                    }
                 }
             }
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MedRow(
     med: MedItem,
     showDivider: Boolean,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null
 ) {
     Column {
         if (showDivider) {
@@ -107,11 +178,12 @@ private fun MedRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .then(
-                    if (onClick != null) {
-                        Modifier.clickable(
+                    if (onClick != null || onLongClick != null) {
+                        Modifier.combinedClickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
-                            onClick = onClick
+                            onClick = { onClick?.invoke() },
+                            onLongClick = { onLongClick?.invoke() }
                         )
                     } else Modifier
                 )
@@ -158,6 +230,16 @@ private fun MedRow(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AddMedIcon() {
+    Canvas(modifier = Modifier.size(18.dp)) {
+        val sw = 2.dp.toPx()
+        val c = AccentBlueLight
+        drawLine(c, Offset(size.width * 0.5f, size.height * 0.2f), Offset(size.width * 0.5f, size.height * 0.8f), strokeWidth = sw, cap = StrokeCap.Round)
+        drawLine(c, Offset(size.width * 0.2f, size.height * 0.5f), Offset(size.width * 0.8f, size.height * 0.5f), strokeWidth = sw, cap = StrokeCap.Round)
     }
 }
 

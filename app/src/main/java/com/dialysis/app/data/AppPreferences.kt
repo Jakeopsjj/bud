@@ -193,18 +193,83 @@ class AppPreferences(context: Context) {
     fun getHeartRate(): Int = prefs.getInt("heart_rate", 72)
     fun setHeartRate(rate: Int) = prefs.edit().putInt("heart_rate", rate).apply()
 
-    // Medications
+    // Medications - user defined, persisted
     fun getMedications(): List<Medication> {
         val today = LocalDate.now().toString()
         val taken = prefs.getStringSet("med_taken_$today", emptySet()) ?: emptySet()
-        return listOf(
-            Medication("med1", "降压药 · 氨氯地平", "08:00", "med1" in taken),
-            Medication("med2", "铁剂 · 多糖铁复合物", "12:00", "med2" in taken),
-            Medication("med3", "磷结合剂 · 碳酸钙", "餐中", "med3" in taken),
-            Medication("med4", "促红素 · EPO", "透析日", "med4" in taken, "注射"),
-            Medication("med5", "活性维生素D", "睡前", "med5" in taken),
-            Medication("med6", "叶酸片", "每日一次", "med6" in taken)
-        )
+        val saved = prefs.getString("medications_list", null) ?: return emptyList()
+        return try {
+            val arr = JSONArray(saved)
+            (0 until arr.length()).map { i ->
+                val obj = arr.getJSONObject(i)
+                Medication(
+                    obj.getString("id"),
+                    obj.getString("name"),
+                    obj.getString("time"),
+                    obj.getString("id") in taken,
+                    if (obj.has("badge")) obj.getString("badge") else null
+                )
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    fun addMedication(name: String, time: String, badge: String? = null): Medication {
+        val meds = getMedicationDefs().toMutableList()
+        val id = "med_${System.currentTimeMillis()}"
+        meds.add(MedicationDef(id, name, time, badge))
+        saveMedicationDefs(meds)
+        return Medication(id, name, time, false, badge)
+    }
+
+    fun deleteMedication(id: String) {
+        val meds = getMedicationDefs().filter { it.id != id }
+        saveMedicationDefs(meds)
+        // Also clear taken status for this med today
+        val today = LocalDate.now().toString()
+        val key = "med_taken_$today"
+        val taken = (prefs.getStringSet(key, mutableSetOf()) ?: mutableSetOf()).toMutableSet()
+        taken.remove(id)
+        prefs.edit().putStringSet(key, taken).apply()
+    }
+
+    private data class MedicationDef(
+        val id: String,
+        val name: String,
+        val time: String,
+        val badge: String? = null
+    )
+
+    private fun getMedicationDefs(): List<MedicationDef> {
+        val saved = prefs.getString("medications_list", null) ?: return emptyList()
+        return try {
+            val arr = JSONArray(saved)
+            (0 until arr.length()).map { i ->
+                val obj = arr.getJSONObject(i)
+                MedicationDef(
+                    obj.getString("id"),
+                    obj.getString("name"),
+                    obj.getString("time"),
+                    if (obj.has("badge")) obj.getString("badge") else null
+                )
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun saveMedicationDefs(meds: List<MedicationDef>) {
+        val arr = JSONArray()
+        meds.forEach { m ->
+            arr.put(JSONObject().apply {
+                put("id", m.id)
+                put("name", m.name)
+                put("time", m.time)
+                if (m.badge != null) put("badge", m.badge)
+            })
+        }
+        prefs.edit().putString("medications_list", arr.toString()).apply()
     }
 
     fun toggleMedication(id: String) {
