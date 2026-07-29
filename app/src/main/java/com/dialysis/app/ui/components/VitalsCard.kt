@@ -53,12 +53,12 @@ fun VitalsSection(vitals: VitalsInfo) {
         ) {
             // 血压
             VitalGlassCard(
-                modifier = Modifier.width(88.dp).height(88.dp)
+                modifier = Modifier.width(100.dp).height(92.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(
@@ -68,57 +68,7 @@ fun VitalsSection(vitals: VitalsInfo) {
                         BpIcon(modifier = Modifier.size(14.dp))
                         Text(
                             text = "血压",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = TextWhiteSecondary
-                        )
-                    }
-                    Text(
-                        text = "${vitals.systolicBP}/${vitals.diastolicBP}",
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TextWhite,
-                        lineHeight = 19.sp,
-                        maxLines = 1
-                    )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Text(
-                            text = "mmHg",
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = TextWhiteSecondary
-                        )
-                        Text(
-                            text = if (vitals.bpTrendUp) "↑" else "↓",
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (vitals.bpTrendUp) AccentOrange else AccentGreen
-                        )
-                    }
-                }
-            }
-
-            // 体重
-            VitalGlassCard(
-                modifier = Modifier.width(88.dp).height(88.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                    ) {
-                        WeightIconSvg(modifier = Modifier.size(14.dp))
-                        Text(
-                            text = "体重",
-                            fontSize = 10.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Normal,
                             color = TextWhiteSecondary
                         )
@@ -128,19 +78,74 @@ fun VitalsSection(vitals: VitalsInfo) {
                         horizontalArrangement = Arrangement.Start
                     ) {
                         Text(
-                            text = "${vitals.weight}",
-                            fontSize = 17.sp,
+                            text = "${vitals.systolicBP}/${vitals.diastolicBP}",
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Medium,
                             color = TextWhite,
-                            lineHeight = 19.sp,
+                            lineHeight = 20.sp,
+                            maxLines = 1
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "mmHg",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextWhite.copy(alpha = 0.75f)
+                        )
+                        Text(
+                            text = if (vitals.bpTrendUp) "↑" else "↓",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (vitals.bpTrendUp) AccentOrange else AccentGreen
+                        )
+                    }
+                }
+            }
+
+            // 体重
+            VitalGlassCard(
+                modifier = Modifier.width(92.dp).height(92.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        WeightIconSvg(modifier = Modifier.size(14.dp))
+                        Text(
+                            text = "体重",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = TextWhiteSecondary
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.Start
+                    ) {
+                        Text(
+                            text = "${"%.1f".format(vitals.weight)}",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextWhite,
+                            lineHeight = 20.sp,
                             maxLines = 1
                         )
                         Text(
                             text = "kg",
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = TextWhiteSecondary,
-                            modifier = Modifier.padding(start = 2.dp, bottom = 2.dp)
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextWhite.copy(alpha = 0.75f),
+                            modifier = Modifier.padding(start = 3.dp, bottom = 1.dp)
                         )
                     }
                     Text(
@@ -148,7 +153,7 @@ fun VitalsSection(vitals: VitalsInfo) {
                             "↓${"%.1f".format(kotlin.math.abs(vitals.weightChange))}kg"
                         else
                             "↑${"%.1f".format(vitals.weightChange)}kg",
-                        fontSize = 9.sp,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (vitals.weightChange < 0) AccentGreen else AccentRed,
                         maxLines = 1
@@ -158,12 +163,12 @@ fun VitalsSection(vitals: VitalsInfo) {
 
             // 饮水 (wider card with progress bar)
             VitalGlassCard(
-                modifier = Modifier.width(118.dp).height(88.dp)
+                modifier = Modifier.width(128.dp).height(92.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(
@@ -173,7 +178,7 @@ fun VitalsSection(vitals: VitalsInfo) {
                         WaterDropIcon(modifier = Modifier.size(14.dp))
                         Text(
                             text = "饮水",
-                            fontSize = 10.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Normal,
                             color = TextWhiteSecondary
                         )
@@ -184,18 +189,25 @@ fun VitalsSection(vitals: VitalsInfo) {
                     ) {
                         Text(
                             text = "${vitals.waterIntake}",
-                            fontSize = 17.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Medium,
                             color = TextWhite,
-                            lineHeight = 19.sp,
+                            lineHeight = 20.sp,
                             maxLines = 1
                         )
                         Text(
-                            text = "/${vitals.waterTarget}ml",
-                            fontSize = 9.sp,
+                            text = "ml",
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
+                            color = TextWhite.copy(alpha = 0.75f),
+                            modifier = Modifier.padding(start = 2.dp, bottom = 1.dp)
+                        )
+                        Text(
+                            text = "/${vitals.waterTarget}ml",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Normal,
                             color = TextWhiteMuted,
-                            modifier = Modifier.padding(bottom = 1.dp),
+                            modifier = Modifier.padding(start = 2.dp, bottom = 1.dp),
                             maxLines = 1
                         )
                     }
@@ -203,7 +215,7 @@ fun VitalsSection(vitals: VitalsInfo) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(5.dp)
+                            .height(6.dp)
                             .background(ProgressTrack, RoundedCornerShape(4.dp))
                     ) {
                         Box(
@@ -223,12 +235,12 @@ fun VitalsSection(vitals: VitalsInfo) {
 
             // 心率
             VitalGlassCard(
-                modifier = Modifier.width(88.dp).height(88.dp)
+                modifier = Modifier.width(92.dp).height(92.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(
@@ -238,25 +250,33 @@ fun VitalsSection(vitals: VitalsInfo) {
                         HeartRateIcon(modifier = Modifier.size(14.dp))
                         Text(
                             text = "心率",
-                            fontSize = 10.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Normal,
                             color = TextWhiteSecondary
                         )
                     }
-                    Text(
-                        text = "${vitals.heartRate}",
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TextWhite,
-                        lineHeight = 19.sp,
-                        maxLines = 1
-                    )
-                    Text(
-                        text = "bpm",
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Normal,
-                        color = TextWhiteSecondary
-                    )
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.Start
+                    ) {
+                        Text(
+                            text = "${vitals.heartRate}",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextWhite,
+                            lineHeight = 20.sp,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = "bpm",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextWhite.copy(alpha = 0.75f),
+                            modifier = Modifier.padding(start = 3.dp, bottom = 1.dp)
+                        )
+                    }
+                    // Empty space to balance layout
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
             }
         }
