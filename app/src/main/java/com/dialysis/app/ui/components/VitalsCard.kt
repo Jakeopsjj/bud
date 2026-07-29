@@ -14,7 +14,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dialysis.app.ui.theme.*
@@ -45,40 +48,38 @@ fun VitalsSection(vitals: VitalsInfo) {
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(7.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             // 血压
             VitalGlassCard(
-                modifier = Modifier.weight(1f).height(84.dp)
+                modifier = Modifier.weight(1f).height(76.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                        .padding(horizontal = 7.dp, vertical = 7.dp),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
-                        BpIcon(modifier = Modifier.size(12.dp))
+                        BpIcon(modifier = Modifier.size(11.dp))
                         Text(
                             text = "血压",
-                            fontSize = 10.sp,
+                            fontSize = 9.sp,
                             color = TextWhiteSecondary
                         )
                     }
                     Text(
-                        text = "${vitals.systolicBP}/${vitals.diastolicBP}",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TextWhite,
-                        maxLines = 1
-                    )
-                    Text(
-                        text = "mmHg ${if (vitals.bpTrendUp) "↑" else "↓"}",
-                        fontSize = 9.sp,
-                        color = TextWhite.copy(alpha = 0.7f),
+                        buildAnnotatedString {
+                            withStyle(SpanStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextWhite)) {
+                                append("${vitals.systolicBP}/${vitals.diastolicBP}")
+                            }
+                            withStyle(SpanStyle(fontSize = 8.sp, color = TextWhite.copy(alpha = 0.65f))) {
+                                append("mmHg")
+                            }
+                        },
                         maxLines = 1
                     )
                 }
@@ -86,40 +87,34 @@ fun VitalsSection(vitals: VitalsInfo) {
 
             // 体重
             VitalGlassCard(
-                modifier = Modifier.weight(1f).height(84.dp)
+                modifier = Modifier.weight(1f).height(76.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                        .padding(horizontal = 7.dp, vertical = 7.dp),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
-                        WeightIconSvg(modifier = Modifier.size(12.dp))
+                        WeightIconSvg(modifier = Modifier.size(11.dp))
                         Text(
                             text = "体重",
-                            fontSize = 10.sp,
+                            fontSize = 9.sp,
                             color = TextWhiteSecondary
                         )
                     }
                     Text(
-                        text = "${"%.1f".format(vitals.weight)}kg",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TextWhite,
-                        maxLines = 1
-                    )
-                    Text(
-                        text = if (vitals.weightChange < 0)
-                            "↓${"%.1f".format(kotlin.math.abs(vitals.weightChange))}kg"
-                        else
-                            "↑${"%.1f".format(vitals.weightChange)}kg",
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (vitals.weightChange < 0) AccentGreen else AccentRed,
+                        buildAnnotatedString {
+                            withStyle(SpanStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextWhite)) {
+                                append("${"%.1f".format(vitals.weight)}")
+                            }
+                            withStyle(SpanStyle(fontSize = 8.sp, color = TextWhite.copy(alpha = 0.65f))) {
+                                append("kg")
+                            }
+                        },
                         maxLines = 1
                     )
                 }
@@ -127,46 +122,44 @@ fun VitalsSection(vitals: VitalsInfo) {
 
             // 饮水
             VitalGlassCard(
-                modifier = Modifier.weight(1f).height(84.dp)
+                modifier = Modifier.weight(1f).height(76.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                        .padding(horizontal = 7.dp, vertical = 7.dp),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
-                        WaterDropIcon(modifier = Modifier.size(12.dp))
+                        WaterDropIcon(modifier = Modifier.size(11.dp))
                         Text(
                             text = "饮水",
-                            fontSize = 10.sp,
+                            fontSize = 9.sp,
                             color = TextWhiteSecondary
                         )
                     }
-                    Text(
-                        text = "${vitals.waterIntake}ml",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TextWhite,
-                        maxLines = 1
-                    )
                     Column {
                         Text(
-                            text = "/${vitals.waterTarget}ml",
-                            fontSize = 8.sp,
-                            color = TextWhiteMuted,
+                            buildAnnotatedString {
+                                withStyle(SpanStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextWhite)) {
+                                    append("${vitals.waterIntake}")
+                                }
+                                withStyle(SpanStyle(fontSize = 8.sp, color = TextWhite.copy(alpha = 0.65f))) {
+                                    append("/${vitals.waterTarget}ml")
+                                }
+                            },
                             maxLines = 1
                         )
-                        Spacer(modifier = Modifier.height(3.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         val ratio = vitals.waterIntake.toFloat() / vitals.waterTarget.toFloat()
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(4.dp)
-                                .background(ProgressTrack, RoundedCornerShape(3.dp))
+                                .height(3.dp)
+                                .background(ProgressTrack, RoundedCornerShape(2.dp))
                         ) {
                             Box(
                                 modifier = Modifier
@@ -176,7 +169,7 @@ fun VitalsSection(vitals: VitalsInfo) {
                                         Brush.horizontalGradient(
                                             colors = listOf(ProgressFillStart, ProgressFillEnd)
                                         ),
-                                        RoundedCornerShape(3.dp)
+                                        RoundedCornerShape(2.dp)
                                     )
                             )
                         }
@@ -186,36 +179,34 @@ fun VitalsSection(vitals: VitalsInfo) {
 
             // 心率
             VitalGlassCard(
-                modifier = Modifier.weight(1f).height(84.dp)
+                modifier = Modifier.weight(1f).height(76.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                        .padding(horizontal = 7.dp, vertical = 7.dp),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
-                        HeartRateIcon(modifier = Modifier.size(12.dp))
+                        HeartRateIcon(modifier = Modifier.size(11.dp))
                         Text(
                             text = "心率",
-                            fontSize = 10.sp,
+                            fontSize = 9.sp,
                             color = TextWhiteSecondary
                         )
                     }
                     Text(
-                        text = "${vitals.heartRate}",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TextWhite,
-                        maxLines = 1
-                    )
-                    Text(
-                        text = "bpm",
-                        fontSize = 9.sp,
-                        color = TextWhite.copy(alpha = 0.7f),
+                        buildAnnotatedString {
+                            withStyle(SpanStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextWhite)) {
+                                append("${vitals.heartRate}")
+                            }
+                            withStyle(SpanStyle(fontSize = 8.sp, color = TextWhite.copy(alpha = 0.65f))) {
+                                append("bpm")
+                            }
+                        },
                         maxLines = 1
                     )
                 }
@@ -229,13 +220,13 @@ private fun BpIcon(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        val strokeW = 1.3.dp.toPx()
+        val strokeW = 1.2.dp.toPx()
         val color = AccentRedSoft
         val cx = w * 0.5f
         val path = Path().apply {
-            moveTo(cx, h * 0.88f)
-            cubicTo(cx - w * 0.5f, h * 0.5f, cx - w * 0.5f, h * 0.12f, cx, h * 0.3f)
-            cubicTo(cx + w * 0.5f, h * 0.12f, cx + w * 0.5f, h * 0.5f, cx, h * 0.88f)
+            moveTo(cx, h * 0.9f)
+            cubicTo(cx - w * 0.5f, h * 0.5f, cx - w * 0.5f, h * 0.1f, cx, h * 0.3f)
+            cubicTo(cx + w * 0.5f, h * 0.1f, cx + w * 0.5f, h * 0.5f, cx, h * 0.9f)
             close()
         }
         drawPath(path, color, style = Stroke(width = strokeW))
@@ -247,18 +238,18 @@ private fun WeightIconSvg(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        val sw = 1.3.dp.toPx()
+        val sw = 1.2.dp.toPx()
         val color = Color.White.copy(alpha = 0.85f)
         drawCircle(
             color = color,
-            radius = w * 0.18f,
-            center = Offset(w * 0.5f, h * 0.25f),
+            radius = w * 0.2f,
+            center = Offset(w * 0.5f, h * 0.28f),
             style = Stroke(width = sw)
         )
         val bodyPath = Path().apply {
-            moveTo(w * 0.5f, h * 0.43f)
-            lineTo(w * 0.15f, h * 0.95f)
-            lineTo(w * 0.85f, h * 0.95f)
+            moveTo(w * 0.5f, h * 0.48f)
+            lineTo(w * 0.1f, h * 0.98f)
+            lineTo(w * 0.9f, h * 0.98f)
             close()
         }
         drawPath(bodyPath, color, style = Stroke(width = sw))
@@ -270,14 +261,14 @@ private fun WaterDropIcon(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        val sw = 1.3.dp.toPx()
+        val sw = 1.2.dp.toPx()
         val color = AccentBlueLight
         val path = Path().apply {
-            moveTo(w * 0.5f, h * 0.08f)
-            cubicTo(w * 0.5f, h * 0.08f, w * 0.08f, h * 0.52f, w * 0.08f, h * 0.72f)
-            cubicTo(w * 0.08f, h * 0.92f, w * 0.27f, h * 0.95f, w * 0.5f, h * 0.95f)
-            cubicTo(w * 0.73f, h * 0.95f, w * 0.92f, h * 0.92f, w * 0.92f, h * 0.72f)
-            cubicTo(w * 0.92f, h * 0.52f, w * 0.5f, h * 0.08f, w * 0.5f, h * 0.08f)
+            moveTo(w * 0.5f, h * 0.05f)
+            cubicTo(w * 0.5f, h * 0.05f, w * 0.05f, h * 0.55f, w * 0.05f, h * 0.75f)
+            cubicTo(w * 0.05f, h * 0.95f, w * 0.25f, h * 0.95f, w * 0.5f, h * 0.95f)
+            cubicTo(w * 0.75f, h * 0.95f, w * 0.95f, h * 0.95f, w * 0.95f, h * 0.75f)
+            cubicTo(w * 0.95f, h * 0.55f, w * 0.5f, h * 0.05f, w * 0.5f, h * 0.05f)
             close()
         }
         drawPath(path, color, style = Stroke(width = sw))
@@ -289,16 +280,16 @@ private fun HeartRateIcon(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        val sw = 1.3.dp.toPx()
-        val midY = h * 0.6f
+        val sw = 1.2.dp.toPx()
+        val midY = h * 0.65f
         val path = Path().apply {
             moveTo(0f, midY)
-            lineTo(w * 0.15f, midY)
-            lineTo(w * 0.25f, midY - h * 0.35f)
-            lineTo(w * 0.38f, midY + h * 0.38f)
-            lineTo(w * 0.5f, midY - h * 0.3f)
-            lineTo(w * 0.6f, midY + h * 0.12f)
-            lineTo(w * 0.68f, midY)
+            lineTo(w * 0.12f, midY)
+            lineTo(w * 0.22f, midY - h * 0.4f)
+            lineTo(w * 0.36f, midY + h * 0.4f)
+            lineTo(w * 0.48f, midY - h * 0.25f)
+            lineTo(w * 0.58f, midY + h * 0.1f)
+            lineTo(w * 0.65f, midY)
             lineTo(w, midY)
         }
         drawPath(path, AccentRed, style = Stroke(width = sw, cap = StrokeCap.Round))
