@@ -326,7 +326,7 @@ class AppPreferences(context: Context) {
             7 -> now.plusDays(1) // Sun -> Mon
             else -> now.plusDays(1)
         }.withHour(8).withMinute(0).withSecond(0).withNano(0)
-        return DialysisSchedule(nextDay, "协和医院血液净化中心", "3层12号机位")
+        return DialysisSchedule(nextDay, "大坪医院血液净化中心", "3层15号机位")
     }
 
     // Dialysis history
