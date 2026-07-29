@@ -42,7 +42,7 @@ fun DialysisCard(dialysis: DialysisInfo) {
 
     LiquidGlassCard(
         modifier = Modifier.fillMaxWidth(),
-        isSunny = true,
+        theme = GlassTheme.Sunny,
         contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
         hasSparkles = true
     ) {

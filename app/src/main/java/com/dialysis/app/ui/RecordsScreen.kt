@@ -1,0 +1,601 @@
+package com.dialysis.app.ui
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.*
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.dialysis.app.ui.components.*
+import com.dialysis.app.ui.theme.*
+
+data class BpDayData(
+    val day: String,
+    val systolic: Float,
+    val diastolic: Float,
+    val isWarning: Boolean = false,
+    val isToday: Boolean = false
+)
+
+@Composable
+fun RecordsScreen(
+    selectedTab: TabItem,
+    onTabSelected: (TabItem) -> Unit
+) {
+    var selectedSegment by remember { mutableStateOf(0) }
+    val segments = listOf("本周", "本月", "全部")
+
+    val bpData = listOf(
+        BpDayData("一", 130f, 85f),
+        BpDayData("二", 140f, 90f),
+        BpDayData("三", 135f, 82f),
+        BpDayData("四", 155f, 98f, isWarning = true),
+        BpDayData("五", 145f, 92f),
+        BpDayData("六", 138f, 88f),
+        BpDayData("今", 142f, 90f, isToday = true)
+    )
+
+    val weightData = listOf(63.0f, 63.2f, 62.8f, 62.3f, 62.5f, 62.8f, 62.5f, 62.3f)
+    val weightDays = listOf("一", "二", "三", "四", "五", "六", "日", "今")
+    val waterIntake = 850
+    val waterTarget = 1500
+    val waterProgress = waterIntake.toFloat() / waterTarget.toFloat()
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        SkyBackground(theme = GlassTheme.Cloudy)
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 92.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Navigation bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "健康记录",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextWhite
+                )
+            }
+
+            // Segmented control
+            SegmentedControl(
+                segments = segments,
+                selectedIndex = selectedSegment,
+                onSegmentSelected = { selectedSegment = it },
+                modifier = Modifier.padding(horizontal = 2.dp)
+            )
+
+            // Blood pressure trend card
+            LiquidGlassCard(
+                theme = GlassTheme.Cloudy,
+                hasSparkles = true,
+                contentPadding = PaddingValues(16.dp, 16.dp)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            BpIcon()
+                            Text(
+                                text = "血压趋势",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextWhite
+                            )
+                        }
+                        Text(
+                            text = "近7天",
+                            fontSize = 11.sp,
+                            color = TextWhiteTertiary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // BP Bar chart
+                    BpBarChart(data = bpData, modifier = Modifier.fillMaxWidth().height(80.dp))
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(AccentRedSoft, RoundedCornerShape(2.dp))
+                            )
+                            Text(
+                                text = "收缩压",
+                                fontSize = 10.sp,
+                                color = TextWhiteTertiary
+                            )
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(AccentRedSoft.copy(alpha = 0.5f), RoundedCornerShape(2.dp))
+                            )
+                            Text(
+                                text = "舒张压",
+                                fontSize = 10.sp,
+                                color = TextWhiteTertiary
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Weight tracking card
+            LiquidGlassCard(
+                theme = GlassTheme.Cloudy,
+                contentPadding = PaddingValues(16.dp, 16.dp)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            WeightIcon()
+                            Text(
+                                text = "体重追踪",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextWhite
+                            )
+                        }
+                        Text(
+                            text = "↓ 0.2kg 较昨日",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = AccentGreen
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    WeightLineChart(
+                        data = weightData,
+                        days = weightDays,
+                        modifier = Modifier.fillMaxWidth().height(70.dp)
+                    )
+                }
+            }
+
+            // Water intake card
+            LiquidGlassCard(
+                theme = GlassTheme.Cloudy,
+                contentPadding = PaddingValues(16.dp, 16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    // Circular progress
+                    Box(
+                        modifier = Modifier.size(84.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularWaterProgress(
+                            progress = waterProgress,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "$waterIntake",
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextWhite
+                            )
+                            Text(
+                                text = "/ ${waterTarget}ml",
+                                fontSize = 10.sp,
+                                color = TextWhiteTertiary
+                            )
+                        }
+                    }
+
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "今日饮水",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextWhite
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            GlassButton(
+                                text = "+100ml 水",
+                                onClick = {},
+                                modifier = Modifier.weight(1f)
+                            )
+                            GlassButton(
+                                text = "+200ml 汤",
+                                onClick = {},
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "还可摄入 ${waterTarget - waterIntake}ml",
+                            fontSize = 10.sp,
+                            color = TextWhiteTertiary
+                        )
+                    }
+                }
+            }
+        }
+
+        BottomTabBar(
+            selectedTab = selectedTab,
+            onTabSelected = onTabSelected,
+            theme = GlassTheme.Cloudy,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
+    }
+}
+
+@Composable
+private fun SegmentedControl(
+    segments: List<String>,
+    selectedIndex: Int,
+    onSegmentSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(36.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color.White.copy(alpha = 0.12f))
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            segments.forEachIndexed { index, label ->
+                val isSelected = index == selectedIndex
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(2.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(
+                            if (isSelected) Brush.verticalGradient(
+                                listOf(AccentBlue, AccentBlue.copy(alpha = 0.8f))
+                            ) else Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { onSegmentSelected(index) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        fontSize = 12.sp,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                        color = if (isSelected) TextWhite else TextWhiteSecondary
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BpIcon() {
+    Canvas(modifier = Modifier.size(16.dp)) {
+        val w = size.width; val h = size.height
+        val path = Path().apply {
+            moveTo(w * 0.5f, h * 0.05f)
+            cubicTo(w * 0.2f, h * 0.25f, w * 0.05f, h * 0.5f, w * 0.25f, h * 0.75f)
+            lineTo(w * 0.5f, h * 0.95f)
+            lineTo(w * 0.75f, h * 0.75f)
+            cubicTo(w * 0.95f, h * 0.5f, w * 0.8f, h * 0.25f, w * 0.5f, h * 0.05f)
+        }
+        drawPath(path, AccentRedSoft, style = Stroke(width = 1.8.dp.toPx()))
+        val hbPath = Path().apply {
+            moveTo(w * 0.25f, h * 0.55f)
+            lineTo(w * 0.4f, h * 0.55f)
+            lineTo(w * 0.48f, h * 0.38f)
+            lineTo(w * 0.58f, h * 0.7f)
+            lineTo(w * 0.68f, h * 0.5f)
+            lineTo(w * 0.8f, h * 0.5f)
+        }
+        drawPath(hbPath, AccentRedSoft, style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+    }
+}
+
+@Composable
+private fun WeightIcon() {
+    Canvas(modifier = Modifier.size(16.dp)) {
+        val w = size.width; val h = size.height; val sw = 1.8.dp.toPx()
+        drawCircle(
+            color = Color.White.copy(alpha = 0.9f),
+            radius = w * 0.22f,
+            center = Offset(w * 0.5f, h * 0.35f),
+            style = Stroke(width = sw)
+        )
+        val bodyPath = Path().apply {
+            moveTo(w * 0.18f, h * 0.9f)
+            quadraticBezierTo(w * 0.18f, h * 0.55f, w * 0.5f, h * 0.55f)
+            quadraticBezierTo(w * 0.82f, h * 0.55f, w * 0.82f, h * 0.9f)
+        }
+        drawPath(bodyPath, Color.White.copy(alpha = 0.9f), style = Stroke(width = sw, cap = StrokeCap.Round))
+    }
+}
+
+@Composable
+private fun BpBarChart(data: List<BpDayData>, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val barWidth = 8.dp.toPx()
+        val gap = 2.dp.toPx()
+        val maxBp = 170f
+        val minBp = 60f
+        val chartH = size.height - 18.dp.toPx()
+
+        data.forEachIndexed { index, day ->
+            val x = (size.width / data.size) * index + (size.width / data.size - barWidth * 2 - gap) / 2
+            val systolicH = ((day.systolic - minBp) / (maxBp - minBp)) * chartH
+            val diastolicH = ((day.diastolic - minBp) / (maxBp - minBp)) * chartH
+
+            val sysColor = when {
+                day.isWarning -> AccentOrange
+                day.isToday -> AccentBlue
+                else -> AccentRedSoft
+            }
+            val diaColor = sysColor.copy(alpha = 0.5f)
+
+            // Diastolic (behind)
+            drawRoundRect(
+                color = diaColor,
+                topLeft = Offset(x + barWidth + gap, chartH - diastolicH + 18.dp.toPx()),
+                size = Size(barWidth, diastolicH),
+                cornerRadius = CornerRadius(3.dp.toPx())
+            )
+            // Systolic (front)
+            drawRoundRect(
+                color = sysColor,
+                topLeft = Offset(x, chartH - systolicH + 18.dp.toPx()),
+                size = Size(barWidth, systolicH),
+                cornerRadius = CornerRadius(3.dp.toPx())
+            )
+
+            if (day.isWarning) {
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(AccentOrange.copy(alpha = 0.3f), Color.Transparent)
+                    ),
+                    radius = 8.dp.toPx(),
+                    center = Offset(x + barWidth / 2, chartH - systolicH + 18.dp.toPx())
+                )
+            }
+        }
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceAround
+    ) {
+        data.forEach { day ->
+            val color = when {
+                day.isWarning -> AccentOrangeSoft
+                day.isToday -> AccentBlueLight
+                else -> TextWhiteTertiary
+            }
+            val weight = if (day.isWarning || day.isToday) FontWeight.SemiBold else FontWeight.Normal
+            Text(
+                text = day.day,
+                fontSize = 9.sp,
+                fontWeight = weight,
+                color = color
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeightLineChart(data: List<Float>, days: List<String>, modifier: Modifier = Modifier) {
+    val minW = data.minOrNull() ?: 62f
+    val maxW = data.maxOrNull() ?: 64f
+    val range = (maxW - minW).coerceAtLeast(1f)
+
+    Column(modifier = modifier) {
+        Canvas(modifier = Modifier.fillMaxWidth().weight(1f)) {
+            val w = size.width
+            val h = size.height
+            val stepX = w / (data.size - 1)
+
+            // Grid lines
+            for (i in 0..2) {
+                val y = h * (0.2f + i * 0.3f)
+                drawLine(
+                    color = Color.White.copy(alpha = 0.08f),
+                    start = Offset(0f, y),
+                    end = Offset(w, y),
+                    strokeWidth = 1.dp.toPx()
+                )
+            }
+
+            // Build path
+            val linePath = Path()
+            val fillPath = Path()
+            val points = data.mapIndexed { index, value ->
+                val x = stepX * index
+                val y = h - ((value - minW) / range) * (h * 0.8f) - h * 0.1f
+                Offset(x, y)
+            }
+
+            points.forEachIndexed { index, point ->
+                if (index == 0) {
+                    linePath.moveTo(point.x, point.y)
+                    fillPath.moveTo(point.x, point.y)
+                } else {
+                    val prev = points[index - 1]
+                    linePath.cubicTo(
+                        prev.x + (point.x - prev.x) * 0.5f, prev.y,
+                        prev.x + (point.x - prev.x) * 0.5f, point.y,
+                        point.x, point.y
+                    )
+                    fillPath.cubicTo(
+                        prev.x + (point.x - prev.x) * 0.5f, prev.y,
+                        prev.x + (point.x - prev.x) * 0.5f, point.y,
+                        point.x, point.y
+                    )
+                }
+            }
+            fillPath.lineTo(points.last().x, h)
+            fillPath.lineTo(points.first().x, h)
+            fillPath.close()
+
+            drawPath(
+                fillPath,
+                Brush.verticalGradient(
+                    listOf(AccentBlueLight.copy(alpha = 0.3f), Color.Transparent)
+                )
+            )
+            drawPath(linePath, AccentBlueLight, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+
+            points.forEachIndexed { index, point ->
+                val color = when {
+                    index == 3 -> AccentOrange
+                    index == points.size - 2 -> AccentGreen
+                    index == points.size - 1 -> AccentBlue
+                    else -> AccentBlueLight
+                }
+                val radius = if (index == points.size - 1) 4.dp.toPx() else 3.dp.toPx()
+                drawCircle(color = color, radius = radius, center = point)
+                if (index == points.size - 1) {
+                    drawCircle(color = Color.White, radius = 4.dp.toPx(), center = point, style = Stroke(width = 1.5.dp.toPx()))
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            days.forEach { day ->
+                Text(
+                    text = day,
+                    fontSize = 9.sp,
+                    color = TextWhiteTertiary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CircularWaterProgress(progress: Float, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val stroke = 6.dp.toPx()
+        val r = (size.minDimension - stroke) / 2
+        val center = Offset(size.width / 2, size.height / 2)
+
+        drawCircle(
+            color = Color.White.copy(alpha = 0.12f),
+            radius = r,
+            center = center,
+            style = Stroke(width = stroke)
+        )
+
+        val sweep = 360f * progress.coerceIn(0f, 1f)
+        drawArc(
+            brush = Brush.linearGradient(
+                listOf(AccentBlueLight, AccentBlue),
+                start = Offset(center.x - r, center.y),
+                end = Offset(center.x + r, center.y)
+            ),
+            startAngle = -90f,
+            sweepAngle = sweep,
+            useCenter = false,
+            topLeft = Offset(center.x - r, center.y - r),
+            size = Size(r * 2, r * 2),
+            style = Stroke(width = stroke, cap = StrokeCap.Round)
+        )
+    }
+}
+
+@Composable
+private fun GlassButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(34.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White.copy(alpha = 0.15f))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = TextWhite
+        )
+    }
+}

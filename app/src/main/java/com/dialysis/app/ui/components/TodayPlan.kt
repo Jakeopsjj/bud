@@ -34,7 +34,7 @@ data class MedItem(
 fun TodayMedication(meds: List<MedItem>) {
     LiquidGlassCard(
         modifier = Modifier.fillMaxWidth(),
-        isSunny = true,
+        theme = GlassTheme.Sunny,
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Column(

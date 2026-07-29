@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,7 +13,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,55 +29,70 @@ enum class TabItem(val label: String) {
 fun BottomTabBar(
     selectedTab: TabItem,
     onTabSelected: (TabItem) -> Unit,
+    theme: GlassTheme = GlassTheme.Sunny,
     modifier: Modifier = Modifier
 ) {
+    val bgColors = when (theme) {
+        GlassTheme.Night -> listOf(
+            Color(0x730D1428),
+            Color(0x99080C19)
+        )
+        GlassTheme.Sos -> listOf(
+            Color(0x991E0A0A),
+            Color(0xCC100505)
+        )
+        GlassTheme.Cloudy -> listOf(
+            Color.White.copy(alpha = 0.10f),
+            Color.White.copy(alpha = 0.18f)
+        )
+        else -> listOf(
+            Color.White.copy(alpha = 0.08f),
+            Color.White.copy(alpha = 0.16f)
+        )
+    }
+    val borderColor = when (theme) {
+        GlassTheme.Night -> Color.White.copy(alpha = 0.12f)
+        GlassTheme.Sos -> Color(0x26FF6464)
+        GlassTheme.Cloudy -> Color.White.copy(alpha = 0.22f)
+        else -> Color.White.copy(alpha = 0.28f)
+    }
+    val activeColor = when (theme) {
+        GlassTheme.Night -> Color(0xFF6EA8FF)
+        GlassTheme.Sos -> Color(0xFFFF6B6B)
+        else -> AccentBlue
+    }
+    val inactiveColor = when (theme) {
+        GlassTheme.Night -> Color(0x99FFFFFF)
+        GlassTheme.Sos -> Color(0xB3FFFFFF)
+        else -> TabInactive
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(82.dp)
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.08f),
-                        Color.White.copy(alpha = 0.16f)
-                    )
-                )
-            )
+            .background(brush = Brush.verticalGradient(colors = bgColors))
             .drawBehind {
                 val w = size.width
-                // Top border
                 drawLine(
-                    color = Color.White.copy(alpha = 0.28f),
+                    color = borderColor,
                     start = Offset(0f, 0f),
                     end = Offset(w, 0f),
                     strokeWidth = 0.5.dp.toPx()
                 )
-                // Top highlight
-                drawLine(
-                    color = Color.White.copy(alpha = 0.30f),
-                    start = Offset(w * 0.12f, 1.dp.toPx()),
-                    end = Offset(w * 0.88f, 1.dp.toPx()),
-                    strokeWidth = 1.dp.toPx(),
-                    blendMode = BlendMode.Plus
-                )
             }
     ) {
-        // Top highlight gradient
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             drawLine(
                 brush = Brush.horizontalGradient(
-                    colors = listOf(
-                        Color.Transparent,
-                        Color.White.copy(alpha = 0.6f),
-                        Color.Transparent
-                    ),
-                    startX = w * 0.12f,
-                    endX = w * 0.88f
+                    colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.40f), Color.Transparent),
+                    startX = w * 0.12f, endX = w * 0.88f
                 ),
-                start = Offset(w * 0.12f, 0f),
-                end = Offset(w * 0.88f, 0f),
-                strokeWidth = 1.dp.toPx()
+                start = Offset(w * 0.12f, 1.dp.toPx()),
+                end = Offset(w * 0.88f, 1.dp.toPx()),
+                strokeWidth = 1.dp.toPx(),
+                blendMode = BlendMode.Plus
             )
         }
 
@@ -94,6 +107,8 @@ fun BottomTabBar(
                 TabBarItemView(
                     tab = tab,
                     isSelected = selectedTab == tab,
+                    activeColor = activeColor,
+                    inactiveColor = inactiveColor,
                     onClick = { onTabSelected(tab) }
                 )
             }
@@ -105,75 +120,55 @@ fun BottomTabBar(
 private fun TabBarItemView(
     tab: TabItem,
     isSelected: Boolean,
+    activeColor: Color,
+    inactiveColor: Color,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val color = if (isSelected) activeColor else inactiveColor
     Column(
         modifier = Modifier
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
         when (tab) {
-            TabItem.Home -> HomeIcon(selected = isSelected)
-            TabItem.Records -> RecordsIcon(selected = isSelected)
-            TabItem.Schedule -> ScheduleIcon(selected = isSelected)
-            TabItem.Contacts -> ContactsIcon(selected = isSelected)
+            TabItem.Home -> HomeIcon(color = color, filled = isSelected)
+            TabItem.Records -> RecordsIcon(color = color)
+            TabItem.Schedule -> ScheduleIcon(color = color)
+            TabItem.Contacts -> ContactsIcon(color = color)
         }
         Text(
             text = tab.label,
             fontSize = 10.sp,
             fontWeight = FontWeight.Normal,
-            color = if (isSelected) AccentBlue else TabInactive
+            color = color
         )
     }
 }
 
 @Composable
-private fun HomeIcon(selected: Boolean) {
-    val color = if (selected) AccentBlue else TabInactive
+private fun HomeIcon(color: Color, filled: Boolean) {
     Canvas(modifier = Modifier.size(24.dp)) {
-        val w = size.width
-        val h = size.height
+        val w = size.width; val h = size.height
         val path = Path().apply {
-            moveTo(w * 0.13f, h * 0.48f)
-            lineTo(w * 0.5f, h * 0.15f)
-            lineTo(w * 0.87f, h * 0.48f)
-            lineTo(w * 0.87f, h * 0.83f)
-            lineTo(w * 0.62f, h * 0.83f)
-            lineTo(w * 0.62f, h * 0.60f)
-            lineTo(w * 0.38f, h * 0.60f)
-            lineTo(w * 0.38f, h * 0.83f)
-            lineTo(w * 0.13f, h * 0.83f)
-            close()
+            moveTo(w * 0.13f, h * 0.48f); lineTo(w * 0.5f, h * 0.15f); lineTo(w * 0.87f, h * 0.48f)
+            lineTo(w * 0.87f, h * 0.83f); lineTo(w * 0.62f, h * 0.83f)
+            lineTo(w * 0.62f, h * 0.60f); lineTo(w * 0.38f, h * 0.60f); lineTo(w * 0.38f, h * 0.83f)
+            lineTo(w * 0.13f, h * 0.83f); close()
         }
-        if (selected) {
-            drawPath(path, color)
-        } else {
-            drawPath(path, color, style = Stroke(width = 1.6.dp.toPx()))
-        }
+        if (filled) drawPath(path, color) else drawPath(path, color, style = Stroke(width = 1.6.dp.toPx()))
     }
 }
 
 @Composable
-private fun RecordsIcon(selected: Boolean) {
-    val color = if (selected) AccentBlue else TabInactive
+private fun RecordsIcon(color: Color) {
     Canvas(modifier = Modifier.size(24.dp)) {
-        val w = size.width
-        val h = size.height
-        val sw = 1.7.dp.toPx()
+        val w = size.width; val h = size.height; val sw = 1.7.dp.toPx()
         val path = Path().apply {
-            moveTo(w * 0.17f, h * 0.20f)
-            lineTo(w * 0.58f, h * 0.20f)
-            lineTo(w * 0.83f, h * 0.45f)
-            lineTo(w * 0.83f, h * 0.83f)
-            lineTo(w * 0.17f, h * 0.83f)
-            close()
+            moveTo(w * 0.17f, h * 0.20f); lineTo(w * 0.58f, h * 0.20f); lineTo(w * 0.83f, h * 0.45f)
+            lineTo(w * 0.83f, h * 0.83f); lineTo(w * 0.17f, h * 0.83f); close()
         }
         drawPath(path, color, style = Stroke(width = sw))
         drawLine(color, Offset(w * 0.58f, h * 0.20f), Offset(w * 0.58f, h * 0.45f), strokeWidth = sw)
@@ -184,20 +179,12 @@ private fun RecordsIcon(selected: Boolean) {
 }
 
 @Composable
-private fun ScheduleIcon(selected: Boolean) {
-    val color = if (selected) AccentBlue else TabInactive
+private fun ScheduleIcon(color: Color) {
     Canvas(modifier = Modifier.size(24.dp)) {
-        val w = size.width
-        val h = size.height
-        val sw = 1.7.dp.toPx()
-        val cornerPx = 3.dp.toPx()
-        drawRoundRect(
-            color = color,
-            topLeft = Offset(w * 0.13f, h * 0.22f),
-            size = Size(w * 0.74f, h * 0.66f),
-            cornerRadius = CornerRadius(cornerPx),
-            style = Stroke(width = sw)
-        )
+        val w = size.width; val h = size.height; val sw = 1.7.dp.toPx()
+        drawRoundRect(color = color, topLeft = Offset(w * 0.13f, h * 0.22f),
+            size = Size(w * 0.74f, h * 0.66f), cornerRadius = CornerRadius(3.dp.toPx()),
+            style = Stroke(width = sw))
         drawLine(color, Offset(w * 0.13f, h * 0.38f), Offset(w * 0.87f, h * 0.38f), strokeWidth = sw)
         drawLine(color, Offset(w * 0.32f, h * 0.13f), Offset(w * 0.32f, h * 0.33f), strokeWidth = sw, cap = StrokeCap.Round)
         drawLine(color, Offset(w * 0.68f, h * 0.13f), Offset(w * 0.68f, h * 0.33f), strokeWidth = sw, cap = StrokeCap.Round)
@@ -211,18 +198,10 @@ private fun ScheduleIcon(selected: Boolean) {
 }
 
 @Composable
-private fun ContactsIcon(selected: Boolean) {
-    val color = if (selected) AccentBlue else TabInactive
+private fun ContactsIcon(color: Color) {
     Canvas(modifier = Modifier.size(24.dp)) {
-        val w = size.width
-        val h = size.height
-        val sw = 1.7.dp.toPx()
-        drawCircle(
-            color = color,
-            radius = w * 0.17f,
-            center = Offset(w * 0.5f, h * 0.35f),
-            style = Stroke(width = sw)
-        )
+        val w = size.width; val h = size.height; val sw = 1.7.dp.toPx()
+        drawCircle(color = color, radius = w * 0.17f, center = Offset(w * 0.5f, h * 0.35f), style = Stroke(width = sw))
         val path = Path().apply {
             moveTo(w * 0.18f, h * 0.88f)
             quadraticBezierTo(w * 0.18f, h * 0.58f, w * 0.5f, h * 0.58f)

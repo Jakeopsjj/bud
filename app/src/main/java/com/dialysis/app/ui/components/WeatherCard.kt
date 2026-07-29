@@ -29,7 +29,7 @@ data class WeatherInfo(
 fun WeatherCard(weather: WeatherInfo) {
     LiquidGlassCard(
         modifier = Modifier.fillMaxWidth(),
-        isSunny = true,
+        theme = GlassTheme.Sunny,
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Row(

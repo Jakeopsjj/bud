@@ -24,71 +24,126 @@ import com.dialysis.app.ui.theme.*
 import kotlin.math.cos
 import kotlin.math.sin
 
+enum class GlassTheme { Sunny, Cloudy, Night, Sos }
+
 @Composable
-fun SkyBackground(modifier: Modifier = Modifier) {
+fun SkyBackground(
+    modifier: Modifier = Modifier,
+    theme: GlassTheme = GlassTheme.Sunny
+) {
+    val colors = when (theme) {
+        GlassTheme.Sunny -> listOf(SkyTop, SkyMid, SkyHorizon)
+        GlassTheme.Cloudy -> listOf(CloudyTop, CloudyMid, CloudyHorizon)
+        GlassTheme.Night -> listOf(NightTop, NightMid, NightHorizon)
+        GlassTheme.Sos -> listOf(SosTop, SosMid, SosHorizon)
+    }
+    val cloudColor = when (theme) {
+        GlassTheme.Night -> CloudColorNight
+        GlassTheme.Sos -> Color(0x10FF0000)
+        else -> CloudColor
+    }
+
     Canvas(modifier = modifier.fillMaxSize()) {
         drawRect(
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    SkyTop,
-                    SkyMid,
-                    SkyHorizon
-                ),
-                startY = 0f,
-                endY = size.height
-            ),
+            brush = Brush.verticalGradient(colors = colors),
             size = size
         )
-        // Soft cloud-like blobs scattered across sky
-        drawCloud(this, Offset(size.width * 0.2f, size.height * 0.08f), 80f, 0.18f)
-        drawCloud(this, Offset(size.width * 0.78f, size.height * 0.12f), 100f, 0.14f)
-        drawCloud(this, Offset(size.width * 0.35f, size.height * 0.22f), 60f, 0.12f)
-        drawCloud(this, Offset(size.width * 0.88f, size.height * 0.3f), 90f, 0.10f)
-        drawCloud(this, Offset(size.width * 0.15f, size.height * 0.42f), 70f, 0.10f)
-        drawCloud(this, Offset(size.width * 0.6f, size.height * 0.5f), 110f, 0.08f)
-        drawCloud(this, Offset(size.width * 0.85f, size.height * 0.6f), 75f, 0.12f)
-        drawCloud(this, Offset(size.width * 0.3f, size.height * 0.7f), 90f, 0.10f)
-        drawCloud(this, Offset(size.width * 0.7f, size.height * 0.82f), 80f, 0.15f)
-        drawCloud(this, Offset(size.width * 0.1f, size.height * 0.88f), 65f, 0.12f)
-        // Sun glow in upper area
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color(0x40FFF0B0),
-                    Color(0x20FFE080),
-                    Color.Transparent
+        // Cloud blobs
+        val cloudAlpha = if (theme == GlassTheme.Night) 0.08f
+            else if (theme == GlassTheme.Sos) 0.05f
+            else if (theme == GlassTheme.Cloudy) 0.22f
+            else 0.15f
+        drawCloud(this, Offset(size.width * 0.2f, size.height * 0.08f), 80f, cloudAlpha, cloudColor)
+        drawCloud(this, Offset(size.width * 0.78f, size.height * 0.12f), 100f, cloudAlpha * 0.8f, cloudColor)
+        drawCloud(this, Offset(size.width * 0.35f, size.height * 0.22f), 60f, cloudAlpha * 0.7f, cloudColor)
+        drawCloud(this, Offset(size.width * 0.88f, size.height * 0.3f), 90f, cloudAlpha * 0.6f, cloudColor)
+        drawCloud(this, Offset(size.width * 0.15f, size.height * 0.42f), 70f, cloudAlpha * 0.6f, cloudColor)
+        drawCloud(this, Offset(size.width * 0.6f, size.height * 0.5f), 110f, cloudAlpha * 0.5f, cloudColor)
+        drawCloud(this, Offset(size.width * 0.85f, size.height * 0.6f), 75f, cloudAlpha * 0.7f, cloudColor)
+        drawCloud(this, Offset(size.width * 0.3f, size.height * 0.7f), 90f, cloudAlpha * 0.6f, cloudColor)
+        drawCloud(this, Offset(size.width * 0.7f, size.height * 0.82f), 80f, cloudAlpha * 0.8f, cloudColor)
+        drawCloud(this, Offset(size.width * 0.1f, size.height * 0.88f), 65f, cloudAlpha * 0.7f, cloudColor)
+
+        // Sun/moon glow
+        if (theme == GlassTheme.Sunny) {
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0x40FFF0B0),
+                        Color(0x20FFE080),
+                        Color.Transparent
+                    ),
+                    center = Offset(size.width * 0.8f, size.height * 0.08f),
+                    radius = size.width * 0.35f
                 ),
-                center = Offset(size.width * 0.8f, size.height * 0.08f),
-                radius = size.width * 0.35f
-            ),
-            radius = size.width * 0.35f,
-            center = Offset(size.width * 0.8f, size.height * 0.08f)
-        )
+                radius = size.width * 0.35f,
+                center = Offset(size.width * 0.8f, size.height * 0.08f)
+            )
+        } else if (theme == GlassTheme.Night) {
+            // Moon glow
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0x20B0C0FF),
+                        Color(0x108090DD),
+                        Color.Transparent
+                    ),
+                    center = Offset(size.width * 0.8f, size.height * 0.15f),
+                    radius = size.width * 0.25f
+                ),
+                radius = size.width * 0.25f,
+                center = Offset(size.width * 0.8f, size.height * 0.15f)
+            )
+            // Stars
+            listOf(
+                Offset(size.width * 0.15f, size.height * 0.1f),
+                Offset(size.width * 0.4f, size.height * 0.06f),
+                Offset(size.width * 0.6f, size.height * 0.2f),
+                Offset(size.width * 0.25f, size.height * 0.28f),
+                Offset(size.width * 0.9f, size.height * 0.35f),
+                Offset(size.width * 0.1f, size.height * 0.45f),
+                Offset(size.width * 0.5f, size.height * 0.5f)
+            ).forEach {
+                drawCircle(Color.White.copy(alpha = 0.45f), radius = 1.5f, center = it)
+            }
+        } else if (theme == GlassTheme.Sos) {
+            // Red ambient glow at top
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0x30FF3030),
+                        Color(0x10FF0000),
+                        Color.Transparent
+                    ),
+                    center = Offset(size.width * 0.5f, size.height * 0.0f),
+                    radius = size.width * 0.6f
+                ),
+                radius = size.width * 0.6f,
+                center = Offset(size.width * 0.5f, size.height * 0.0f)
+            )
+        }
     }
 }
 
-private fun drawCloud(scope: DrawScope, center: Offset, radius: Float, alpha: Float) {
-    val cloudColor = Color.White.copy(alpha = alpha)
+private fun drawCloud(scope: DrawScope, center: Offset, radius: Float, alpha: Float, colorOverride: Color? = null) {
+    val cloudColor = colorOverride ?: Color.White.copy(alpha = alpha)
+    val fill = if (colorOverride != null) colorOverride else cloudColor
     val path = Path()
     val r = radius
     path.addOval(Rect(center.x - r, center.y - r * 0.4f, center.x + r, center.y + r * 0.5f))
     path.addOval(Rect(center.x - r * 1.3f, center.y - r * 0.2f, center.x - r * 0.3f, center.y + r * 0.4f))
     path.addOval(Rect(center.x + r * 0.2f, center.y - r * 0.3f, center.x + r * 1.2f, center.y + r * 0.3f))
     path.addOval(Rect(center.x - r * 0.5f, center.y - r * 0.6f, center.x + r * 0.5f, center.y + r * 0.2f))
-    scope.drawPath(path, cloudColor)
+    scope.drawPath(path, fill)
 }
 
 /**
- * Liquid Glass card matching the HTML .glass / .glass-sunny design.
- * - Multi-layer gradient (top specular, warm refraction, cool refraction, body)
- * - 0.5px border with gradient
- * - Inner top highlight (bevel)
- * - Drop shadows
+ * Liquid Glass card supporting multiple themes.
  */
 @Composable
 fun LiquidGlassCard(
     modifier: Modifier = Modifier,
-    isSunny: Boolean = false,
+    theme: GlassTheme = GlassTheme.Sunny,
     cornerRadius: Dp = 24.dp,
     contentPadding: PaddingValues = PaddingValues(16.dp),
     hasSparkles: Boolean = false,
@@ -99,51 +154,76 @@ fun LiquidGlassCard(
     val density = LocalDensity.current
     val interactionSource = remember { MutableInteractionSource() }
 
+    // Gradient colors per theme
+    val bgGradient = when (theme) {
+        GlassTheme.Sunny -> listOf(
+            Color.White.copy(alpha = 0.22f),
+            Color.White.copy(alpha = 0.10f),
+            Color.White.copy(alpha = 0.08f),
+            Color.White.copy(alpha = 0.18f)
+        )
+        GlassTheme.Cloudy -> listOf(
+            Color.White.copy(alpha = 0.24f),
+            Color.White.copy(alpha = 0.12f),
+            Color.White.copy(alpha = 0.08f),
+            Color.White.copy(alpha = 0.20f)
+        )
+        GlassTheme.Night -> listOf(
+            Color.White.copy(alpha = 0.13f),
+            Color.White.copy(alpha = 0.06f),
+            Color.White.copy(alpha = 0.04f),
+            Color.White.copy(alpha = 0.12f)
+        )
+        GlassTheme.Sos -> listOf(
+            Color(0x33FF4040).copy(alpha = 0.18f),
+            Color(0x22FF2020).copy(alpha = 0.08f),
+            Color(0x11FF0000).copy(alpha = 0.05f),
+            Color(0x33FF3030).copy(alpha = 0.15f)
+        )
+    }
+
+    val warmOverlay = when (theme) {
+        GlassTheme.Sunny -> Color(0x14FFDC8C)
+        GlassTheme.Cloudy -> Color(0x10FFF0C0)
+        GlassTheme.Night -> Color(0x08FFB060)
+        GlassTheme.Sos -> Color(0x20FF4040)
+    }
+
+    val borderAlpha = when (theme) {
+        GlassTheme.Sunny -> floatArrayOf(0.50f, 0.35f, 0.20f, 0.30f)
+        GlassTheme.Cloudy -> floatArrayOf(0.48f, 0.32f, 0.18f, 0.28f)
+        GlassTheme.Night -> floatArrayOf(0.28f, 0.18f, 0.10f, 0.18f)
+        GlassTheme.Sos -> floatArrayOf(0.40f, 0.25f, 0.15f, 0.28f)
+    }
+
+    val bevelAlpha = when (theme) {
+        GlassTheme.Sunny -> 0.55f
+        GlassTheme.Cloudy -> 0.50f
+        GlassTheme.Night -> 0.30f
+        GlassTheme.Sos -> 0.35f
+    }
+
     Box(
         modifier = modifier
-            .graphicsLayer {
-                alpha = 0.98f
-            }
+            .graphicsLayer { alpha = 0.98f }
             .clip(shape)
+            .background(brush = Brush.verticalGradient(colors = bgGradient))
             .then(
-                if (isSunny) {
-                    Modifier
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = 0.22f),
-                                    Color.White.copy(alpha = 0.10f),
-                                    Color.White.copy(alpha = 0.08f),
-                                    Color.White.copy(alpha = 0.18f)
-                                )
-                            )
-                        )
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color(0x14FFDC8C),
-                                    Color.Transparent
-                                ),
-                                endY = with(density) { 60.dp.toPx() }
-                            )
-                        )
-                } else {
+                if (theme != GlassTheme.Sos) {
                     Modifier.background(
                         brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = 0.20f),
-                                Color.White.copy(alpha = 0.08f),
-                                Color.White.copy(alpha = 0.06f),
-                                Color.White.copy(alpha = 0.15f)
-                            )
+                            colors = listOf(warmOverlay, Color.Transparent),
+                            endY = with(density) { 60.dp.toPx() }
                         )
                     )
-                }
+                } else Modifier
             )
             .drawBehind {
                 drawGlassEffects(
                     cornerRadius = with(density) { cornerRadius.toPx() },
-                    isSunny = isSunny
+                    borderAlpha = borderAlpha,
+                    bevelAlpha = bevelAlpha,
+                    theme = theme
                 )
             }
             .then(
@@ -158,8 +238,8 @@ fun LiquidGlassCard(
             ),
         contentAlignment = Alignment.CenterStart
     ) {
-        // Top glossy dome highlight (::after pseudo-element)
-        Canvas(modifier = Modifier.matchParentSize()) {
+        // Top glossy dome highlight
+        Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
             drawRoundRect(
@@ -186,20 +266,23 @@ fun LiquidGlassCard(
     }
 }
 
-private fun DrawScope.drawGlassEffects(cornerRadius: Float, isSunny: Boolean) {
+private fun DrawScope.drawGlassEffects(
+    cornerRadius: Float,
+    borderAlpha: FloatArray,
+    bevelAlpha: Float,
+    theme: GlassTheme
+) {
     val w = size.width
     val h = size.height
     val borderW = 0.5.dp.toPx()
 
-    // Outer shadow (multiple layers for volume)
-    // We use drawShadow would require a path; approximate with inset rectangles
-    // Outer shadow
+    // Bottom shadow
     drawRoundRect(
         brush = Brush.verticalGradient(
             colors = listOf(
                 Color.Transparent,
-                Color.Black.copy(alpha = 0.04f),
-                Color.Black.copy(alpha = 0.10f)
+                Color.Black.copy(alpha = if (theme == GlassTheme.Night) 0.18f else 0.04f),
+                Color.Black.copy(alpha = if (theme == GlassTheme.Night) 0.25f else 0.10f)
             )
         ),
         topLeft = Offset(0f, h * 0.3f),
@@ -208,13 +291,16 @@ private fun DrawScope.drawGlassEffects(cornerRadius: Float, isSunny: Boolean) {
         blendMode = BlendMode.Multiply
     )
 
-    // Border - thin bright white with gradient
+    val borderColor = when (theme) {
+        GlassTheme.Sos -> Color(0xFFFF8080)
+        else -> Color.White
+    }
     val borderBrush = Brush.linearGradient(
         colors = listOf(
-            Color.White.copy(alpha = if (isSunny) 0.50f else 0.42f),
-            Color.White.copy(alpha = if (isSunny) 0.35f else 0.28f),
-            Color.White.copy(alpha = if (isSunny) 0.20f else 0.15f),
-            Color.White.copy(alpha = if (isSunny) 0.30f else 0.22f)
+            borderColor.copy(alpha = borderAlpha[0]),
+            borderColor.copy(alpha = borderAlpha[1]),
+            borderColor.copy(alpha = borderAlpha[2]),
+            borderColor.copy(alpha = borderAlpha[3])
         ),
         start = Offset(0f, 0f),
         end = Offset(0f, h)
@@ -228,15 +314,14 @@ private fun DrawScope.drawGlassEffects(cornerRadius: Float, isSunny: Boolean) {
         blendMode = BlendMode.Plus
     )
 
-    // Inner top bevel highlight
     val hlH = 1.5.dp.toPx()
     val inset = borderW * 2f
     drawRoundRect(
         brush = Brush.horizontalGradient(
             colors = listOf(
                 Color.Transparent,
-                Color.White.copy(alpha = if (isSunny) 0.55f else 0.45f),
-                Color.White.copy(alpha = if (isSunny) 0.55f else 0.45f),
+                Color.White.copy(alpha = bevelAlpha),
+                Color.White.copy(alpha = bevelAlpha),
                 Color.Transparent
             ),
             startX = cornerRadius,
@@ -333,45 +418,66 @@ private fun Sparkles() {
 @Composable
 fun VitalGlassCard(
     modifier: Modifier = Modifier,
+    theme: GlassTheme = GlassTheme.Sunny,
     content: @Composable BoxScope.() -> Unit
 ) {
     val shape = RoundedCornerShape(20.dp)
     val density = LocalDensity.current
     val cr = 20.dp
 
+    val bg = when (theme) {
+        GlassTheme.Sunny -> listOf(
+            Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.10f),
+            Color.White.copy(alpha = 0.08f), Color.White.copy(alpha = 0.18f)
+        )
+        GlassTheme.Cloudy -> listOf(
+            Color.White.copy(alpha = 0.26f), Color.White.copy(alpha = 0.12f),
+            Color.White.copy(alpha = 0.08f), Color.White.copy(alpha = 0.20f)
+        )
+        GlassTheme.Night -> listOf(
+            Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.05f),
+            Color.White.copy(alpha = 0.03f), Color.White.copy(alpha = 0.10f)
+        )
+        GlassTheme.Sos -> listOf(
+            Color(0x30FF3030), Color(0x18FF2020), Color(0x10FF0000), Color(0x28FF2828)
+        )
+    }
+    val borderAlphas = when (theme) {
+        GlassTheme.Sunny -> floatArrayOf(0.42f, 0.28f, 0.18f, 0.30f)
+        GlassTheme.Cloudy -> floatArrayOf(0.42f, 0.28f, 0.18f, 0.30f)
+        GlassTheme.Night -> floatArrayOf(0.22f, 0.14f, 0.08f, 0.16f)
+        GlassTheme.Sos -> floatArrayOf(0.35f, 0.22f, 0.12f, 0.22f)
+    }
+    val bevelA = when (theme) {
+        GlassTheme.Night -> 0.28f
+        GlassTheme.Sos -> 0.25f
+        else -> 0.40f
+    }
+
     Box(
         modifier = modifier
             .clip(shape)
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.22f),
-                        Color.White.copy(alpha = 0.10f),
-                        Color.White.copy(alpha = 0.08f),
-                        Color.White.copy(alpha = 0.18f)
+            .background(brush = Brush.verticalGradient(colors = bg))
+            .then(
+                if (theme != GlassTheme.Sos) Modifier.background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color(0x10FFDC8C), Color.Transparent),
+                        endY = with(density) { 50.dp.toPx() }
                     )
-                )
-            )
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0x14FFDC8C),
-                        Color.Transparent
-                    ),
-                    endY = with(density) { 50.dp.toPx() }
-                )
+                ) else Modifier
             )
             .drawBehind {
                 val w = size.width
                 val h = size.height
                 val crPx = with(density) { cr.toPx() }
                 val bw = 0.5.dp.toPx()
+                val borderColor = if (theme == GlassTheme.Sos) Color(0xFFFF8080) else Color.White
                 val borderBrush = Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.42f),
-                        Color.White.copy(alpha = 0.28f),
-                        Color.White.copy(alpha = 0.18f),
-                        Color.White.copy(alpha = 0.30f)
+                        borderColor.copy(alpha = borderAlphas[0]),
+                        borderColor.copy(alpha = borderAlphas[1]),
+                        borderColor.copy(alpha = borderAlphas[2]),
+                        borderColor.copy(alpha = borderAlphas[3])
                     ),
                     start = Offset(0f, 0f),
                     end = Offset(0f, h)
@@ -387,8 +493,8 @@ fun VitalGlassCard(
                     brush = Brush.horizontalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            Color.White.copy(alpha = 0.40f),
-                            Color.White.copy(alpha = 0.40f),
+                            Color.White.copy(alpha = bevelA),
+                            Color.White.copy(alpha = bevelA),
                             Color.Transparent
                         ),
                         startX = crPx,

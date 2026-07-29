@@ -4,10 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -22,11 +18,12 @@ private val monthNames = arrayOf("1月","2月","3月","4月","5月","6月","7月
 private val weekdayNames = arrayOf("星期一","星期二","星期三","星期四","星期五","星期六","星期日")
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    selectedTab: TabItem,
+    onTabSelected: (TabItem) -> Unit
+) {
     val now = LocalDateTime.now()
     val dateStr = "${monthNames[now.monthValue - 1]}${now.dayOfMonth}日 ${weekdayNames[now.dayOfWeek.value - 1]}"
-
-    var selectedTab by remember { mutableStateOf(TabItem.Home) }
 
     val weather = WeatherInfo(
         temperature = 26,
@@ -64,7 +61,7 @@ fun HomeScreen() {
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
-        SkyBackground()
+        SkyBackground(theme = GlassTheme.Sunny)
 
         Column(
             modifier = Modifier
@@ -106,7 +103,7 @@ fun HomeScreen() {
         // Bottom tab bar
         BottomTabBar(
             selectedTab = selectedTab,
-            onTabSelected = { selectedTab = it },
+            onTabSelected = onTabSelected,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
