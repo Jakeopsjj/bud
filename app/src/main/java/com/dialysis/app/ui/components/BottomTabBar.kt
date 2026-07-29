@@ -34,20 +34,20 @@ fun BottomTabBar(
 ) {
     val bgColors = when (theme) {
         GlassTheme.Night -> listOf(
-            Color(0x730D1428),
-            Color(0x99080C19)
+            Color(0xE60D1428),
+            Color(0xF0080C19)
         )
         GlassTheme.Sos -> listOf(
-            Color(0x991E0A0A),
-            Color(0xCC100505)
+            Color(0xE61E0A0A),
+            Color(0xF0100505)
         )
         GlassTheme.Cloudy -> listOf(
-            Color.White.copy(alpha = 0.10f),
-            Color.White.copy(alpha = 0.18f)
+            Color(0xE6587090),
+            Color(0xF04A6080)
         )
         else -> listOf(
-            Color.White.copy(alpha = 0.08f),
-            Color.White.copy(alpha = 0.16f)
+            Color(0xE64080C0),
+            Color(0xF03070B0)
         )
     }
     val borderColor = when (theme) {

@@ -123,14 +123,26 @@ fun VitalsSection(vitals: VitalsInfo) {
                             color = TextWhiteSecondary
                         )
                     }
-                    Text(
-                        text = "${vitals.weight}",
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TextWhite,
-                        lineHeight = 19.sp,
-                        maxLines = 1
-                    )
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.Start
+                    ) {
+                        Text(
+                            text = "${vitals.weight}",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextWhite,
+                            lineHeight = 19.sp,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = "kg",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = TextWhiteSecondary,
+                            modifier = Modifier.padding(start = 2.dp, bottom = 2.dp)
+                        )
+                    }
                     Text(
                         text = if (vitals.weightChange < 0)
                             "↓${"%.1f".format(kotlin.math.abs(vitals.weightChange))}kg"

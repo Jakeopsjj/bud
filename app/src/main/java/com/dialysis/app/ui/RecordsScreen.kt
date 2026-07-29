@@ -2,8 +2,10 @@ package com.dialysis.app.ui
 
 import android.widget.Toast
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -40,6 +42,7 @@ data class BpDayData(
     val isToday: Boolean = false
 )
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RecordsScreen(
     selectedTab: TabItem,
@@ -62,6 +65,8 @@ fun RecordsScreen(
     val waterIntake = remember(refreshKey) { prefs.getTodayWaterIntake() }
     val waterTarget = remember(refreshKey) { prefs.getWaterTarget() }
     val waterProgress = (waterIntake.toFloat() / waterTarget.toFloat()).coerceIn(0f, 1f)
+    val medsData = remember(refreshKey) { prefs.getMedications() }
+    val meds = medsData.map { MedItem(it.id, it.name, it.time, it.taken, it.badge) }
 
     val bpData = bpRecords.mapIndexed { index, r ->
         val dayNames = arrayOf("一", "二", "三", "四", "五", "六", "日")
@@ -85,6 +90,8 @@ fun RecordsScreen(
     var showBpDialog by remember { mutableStateOf(false) }
     var showWeightDialog by remember { mutableStateOf(false) }
     var showWaterDialog by remember { mutableStateOf(false) }
+    var showAddMedDialog by remember { mutableStateOf(false) }
+    var deleteMedId by remember { mutableStateOf<String?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         SkyBackground(theme = GlassTheme.Cloudy)
@@ -354,6 +361,168 @@ fun RecordsScreen(
                     }
                 }
             }
+
+            // Medication records card
+            LiquidGlassCard(
+                theme = GlassTheme.Cloudy,
+                contentPadding = PaddingValues(16.dp, 16.dp)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            PillIconRecords()
+                            Text(
+                                text = "今日用药",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextWhite
+                            )
+                            if (meds.isNotEmpty()) {
+                                val takenCount = meds.count { it.isTaken }
+                                Text(
+                                    text = "$takenCount/${meds.size}已服",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = AccentGreen
+                                )
+                            }
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = { showAddMedDialog = true }
+                            )
+                        ) {
+                            Text(
+                                text = if (meds.isEmpty()) "添加" else "管理",
+                                fontSize = 11.sp,
+                                color = AccentBlueLight
+                            )
+                            AddIcon()
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    if (meds.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "暂无用药记录，点击右上角添加",
+                                fontSize = 11.sp,
+                                color = TextWhiteTertiary
+                            )
+                        }
+                    } else {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(0.dp)
+                        ) {
+                            meds.forEachIndexed { index, med ->
+                                Column {
+                                    if (index > 0) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(0.5.dp)
+                                                .background(Color.White.copy(alpha = 0.08f))
+                                        )
+                                    }
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .then(
+                                                if (meds.isNotEmpty()) {
+                                                    Modifier.combinedClickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = null,
+                                                        onClick = {
+                                                            prefs.toggleMedication(med.id)
+                                                            refresh()
+                                                        },
+                                                        onLongClick = {
+                                                            deleteMedId = med.id
+                                                        }
+                                                    )
+                                                } else Modifier
+                                            )
+                                            .padding(vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Canvas(modifier = Modifier.size(18.dp)) {
+                                                val w = size.width
+                                                val h = size.height
+                                                if (med.isTaken) {
+                                                    drawCircle(color = AccentGreen, radius = w * 0.45f, center = Offset(w/2, h/2))
+                                                    val sw = 2.dp.toPx()
+                                                    val path = Path().apply {
+                                                        moveTo(w * 0.28f, h * 0.52f)
+                                                        lineTo(w * 0.44f, h * 0.68f)
+                                                        lineTo(w * 0.74f, h * 0.34f)
+                                                    }
+                                                    drawPath(path, Color.White, style = Stroke(width = sw, cap = StrokeCap.Round))
+                                                } else {
+                                                    drawCircle(
+                                                        color = Color.White.copy(alpha = 0.3f),
+                                                        radius = w * 0.4f,
+                                                        center = Offset(w/2, h/2),
+                                                        style = Stroke(width = 1.5.dp.toPx())
+                                                    )
+                                                }
+                                            }
+                                            Column {
+                                                Text(
+                                                    text = med.name,
+                                                    fontSize = 12.sp,
+                                                    color = if (med.isTaken) TextWhiteTertiary else TextWhite,
+                                                    textDecoration = if (med.isTaken) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
+                                                )
+                                                Text(
+                                                    text = med.time,
+                                                    fontSize = 10.sp,
+                                                    color = TextWhiteTertiary
+                                                )
+                                            }
+                                        }
+                                        if (med.badge != null) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(AccentPurpleBg, RoundedCornerShape(6.dp))
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = med.badge,
+                                                    fontSize = 9.sp,
+                                                    color = AccentPurple
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         BottomTabBar(
@@ -387,6 +556,85 @@ fun RecordsScreen(
                 Toast.makeText(context, "体重已记录：${weight}kg", Toast.LENGTH_SHORT).show()
             }
         )
+    }
+
+    // Add Medication Dialog
+    if (showAddMedDialog) {
+        MedInputDialog(
+            onDismiss = { showAddMedDialog = false },
+            onConfirm = { name, time, badge ->
+                prefs.addMedication(name, time, badge)
+                refresh()
+                showAddMedDialog = false
+                Toast.makeText(context, "已添加用药：$name", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    // Delete med confirmation
+    if (deleteMedId != null) {
+        Dialog(onDismissRequest = { deleteMedId = null }) {
+            LiquidGlassCard(
+                theme = GlassTheme.Cloudy,
+                contentPadding = PaddingValues(20.dp, 20.dp),
+                cornerRadius = 20.dp
+            ) {
+                Column {
+                    Text(
+                        text = "删除用药",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextWhite
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "确定要删除这个用药记录吗？",
+                        fontSize = 13.sp,
+                        color = TextWhiteSecondary
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        GlassButton(
+                            text = "取消",
+                            onClick = { deleteMedId = null },
+                            modifier = Modifier.weight(1f)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                                .background(Color(0xFFE53E3E).copy(alpha = 0.2f), RoundedCornerShape(14.dp))
+                                .padding(2.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color(0xFFE53E3E).copy(alpha = 0.9f), RoundedCornerShape(12.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                TextButton(
+                                    onClick = {
+                                        prefs.deleteMedication(deleteMedId!!)
+                                        deleteMedId = null
+                                        refresh()
+                                    },
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    Text(
+                                        "删除",
+                                        color = Color.White,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -542,6 +790,142 @@ private fun WeightInputDialog(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun MedInputDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (name: String, time: String, badge: String?) -> Unit
+) {
+    var medName by remember { mutableStateOf("") }
+    var medTime by remember { mutableStateOf("") }
+    var medBadge by remember { mutableStateOf("") }
+
+    Dialog(onDismissRequest = onDismiss) {
+        LiquidGlassCard(
+            theme = GlassTheme.Cloudy,
+            contentPadding = PaddingValues(20.dp, 20.dp),
+            cornerRadius = 24.dp
+        ) {
+            Column {
+                Text(
+                    text = "添加用药",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextWhite
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = medName,
+                    onValueChange = { medName = it },
+                    label = { Text("药品名称", color = TextWhiteSecondary, fontSize = 12.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedTextColor = TextWhite,
+                        unfocusedTextColor = TextWhite,
+                        cursorColor = AccentBlueLight,
+                        focusedIndicatorColor = AccentBlueLight,
+                        unfocusedIndicatorColor = TextWhiteTertiary,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    )
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = medTime,
+                    onValueChange = { medTime = it },
+                    label = { Text("服用时间（如：08:00/餐前/睡前）", color = TextWhiteSecondary, fontSize = 12.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedTextColor = TextWhite,
+                        unfocusedTextColor = TextWhite,
+                        cursorColor = AccentBlueLight,
+                        focusedIndicatorColor = AccentBlueLight,
+                        unfocusedIndicatorColor = TextWhiteTertiary,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    )
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = medBadge,
+                    onValueChange = { medBadge = it },
+                    label = { Text("备注（可选，如：注射）", color = TextWhiteSecondary, fontSize = 12.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedTextColor = TextWhite,
+                        unfocusedTextColor = TextWhite,
+                        cursorColor = AccentBlueLight,
+                        focusedIndicatorColor = AccentBlueLight,
+                        unfocusedIndicatorColor = TextWhiteTertiary,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    )
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    GlassButton(
+                        text = "取消",
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    )
+                    GlassButton(
+                        text = "保存",
+                        onClick = {
+                            val name = medName.trim()
+                            val time = medTime.trim().ifEmpty { "每日一次" }
+                            if (name.isNotEmpty()) {
+                                onConfirm(name, time, medBadge.trim().ifEmpty { null })
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PillIconRecords() {
+    Canvas(modifier = Modifier.size(16.dp)) {
+        val w = size.width
+        val h = size.height
+        val sw = 1.8.dp.toPx()
+        val color = AccentPurple
+        val path = Path().apply {
+            val cxl = w * 0.28f
+            val cyl = h * 0.65f
+            val cxr = w * 0.72f
+            val cyr = h * 0.35f
+            val r = w * 0.32f
+            moveTo(cxl + r * 0.7f, cyl - r * 0.7f)
+            lineTo(cxr + r * 0.7f, cyr - r * 0.7f)
+            arcTo(
+                androidx.compose.ui.geometry.Rect(cxr - r, cyr - r, cxr + r, cyr + r),
+                -45f, 180f, false
+            )
+            lineTo(cxl - r * 0.7f, cyl + r * 0.7f)
+            arcTo(
+                androidx.compose.ui.geometry.Rect(cxl - r, cyl - r, cxl + r, cyl + r),
+                135f, 180f, false
+            )
+            close()
+        }
+        drawPath(path, color, style = Stroke(width = sw))
+        drawLine(
+            Color.White.copy(alpha = 0.6f),
+            Offset(w * 0.3f, h * 0.3f),
+            Offset(w * 0.7f, h * 0.7f),
+            strokeWidth = sw * 0.75f,
+            cap = StrokeCap.Round
+        )
     }
 }
 
