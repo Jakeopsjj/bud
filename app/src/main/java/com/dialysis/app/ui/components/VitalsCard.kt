@@ -16,7 +16,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dialysis.app.ui.theme.*
@@ -53,7 +56,7 @@ fun VitalsSection(vitals: VitalsInfo) {
         ) {
             // 血压
             VitalGlassCard(
-                modifier = Modifier.width(100.dp).height(92.dp)
+                modifier = Modifier.width(110.dp).height(92.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -73,42 +76,30 @@ fun VitalsSection(vitals: VitalsInfo) {
                             color = TextWhiteSecondary
                         )
                     }
-                    Row(
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.Start
-                    ) {
-                        Text(
-                            text = "${vitals.systolicBP}/${vitals.diastolicBP}",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextWhite,
-                            lineHeight = 20.sp,
-                            maxLines = 1
-                        )
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = "mmHg",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextWhite.copy(alpha = 0.75f)
-                        )
-                        Text(
-                            text = if (vitals.bpTrendUp) "↑" else "↓",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (vitals.bpTrendUp) AccentOrange else AccentGreen
-                        )
-                    }
+                    Text(
+                        buildAnnotatedString {
+                            withStyle(SpanStyle(fontSize = 20.sp, fontWeight = FontWeight.Medium, color = TextWhite)) {
+                                append("${vitals.systolicBP}/${vitals.diastolicBP}")
+                            }
+                            withStyle(SpanStyle(fontSize = 12.sp, fontWeight = FontWeight.Normal, color = TextWhite.copy(alpha = 0.7f))) {
+                                append(" mmHg")
+                            }
+                        },
+                        lineHeight = 22.sp,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = if (vitals.bpTrendUp) "↑ 偏高" else "↓ 正常",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (vitals.bpTrendUp) AccentOrange else AccentGreen
+                    )
                 }
             }
 
             // 体重
             VitalGlassCard(
-                modifier = Modifier.width(92.dp).height(92.dp)
+                modifier = Modifier.width(100.dp).height(92.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -128,32 +119,24 @@ fun VitalsSection(vitals: VitalsInfo) {
                             color = TextWhiteSecondary
                         )
                     }
-                    Row(
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.Start
-                    ) {
-                        Text(
-                            text = "${"%.1f".format(vitals.weight)}",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextWhite,
-                            lineHeight = 20.sp,
-                            maxLines = 1
-                        )
-                        Text(
-                            text = "kg",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextWhite.copy(alpha = 0.75f),
-                            modifier = Modifier.padding(start = 3.dp, bottom = 1.dp)
-                        )
-                    }
+                    Text(
+                        buildAnnotatedString {
+                            withStyle(SpanStyle(fontSize = 20.sp, fontWeight = FontWeight.Medium, color = TextWhite)) {
+                                append("${"%.1f".format(vitals.weight)}")
+                            }
+                            withStyle(SpanStyle(fontSize = 12.sp, fontWeight = FontWeight.Normal, color = TextWhite.copy(alpha = 0.7f))) {
+                                append(" kg")
+                            }
+                        },
+                        lineHeight = 22.sp,
+                        maxLines = 1
+                    )
                     Text(
                         text = if (vitals.weightChange < 0)
                             "↓${"%.1f".format(kotlin.math.abs(vitals.weightChange))}kg"
                         else
                             "↑${"%.1f".format(vitals.weightChange)}kg",
-                        fontSize = 10.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (vitals.weightChange < 0) AccentGreen else AccentRed,
                         maxLines = 1
@@ -163,7 +146,7 @@ fun VitalsSection(vitals: VitalsInfo) {
 
             // 饮水 (wider card with progress bar)
             VitalGlassCard(
-                modifier = Modifier.width(128.dp).height(92.dp)
+                modifier = Modifier.width(138.dp).height(92.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -183,34 +166,21 @@ fun VitalsSection(vitals: VitalsInfo) {
                             color = TextWhiteSecondary
                         )
                     }
-                    Row(
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.Start
-                    ) {
-                        Text(
-                            text = "${vitals.waterIntake}",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextWhite,
-                            lineHeight = 20.sp,
-                            maxLines = 1
-                        )
-                        Text(
-                            text = "ml",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextWhite.copy(alpha = 0.75f),
-                            modifier = Modifier.padding(start = 2.dp, bottom = 1.dp)
-                        )
-                        Text(
-                            text = "/${vitals.waterTarget}ml",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = TextWhiteMuted,
-                            modifier = Modifier.padding(start = 2.dp, bottom = 1.dp),
-                            maxLines = 1
-                        )
-                    }
+                    Text(
+                        buildAnnotatedString {
+                            withStyle(SpanStyle(fontSize = 20.sp, fontWeight = FontWeight.Medium, color = TextWhite)) {
+                                append("${vitals.waterIntake}")
+                            }
+                            withStyle(SpanStyle(fontSize = 12.sp, fontWeight = FontWeight.Normal, color = TextWhite.copy(alpha = 0.7f))) {
+                                append("ml")
+                            }
+                            withStyle(SpanStyle(fontSize = 11.sp, fontWeight = FontWeight.Normal, color = TextWhiteMuted)) {
+                                append("/${vitals.waterTarget}ml")
+                            }
+                        },
+                        lineHeight = 22.sp,
+                        maxLines = 1
+                    )
                     val ratio = vitals.waterIntake.toFloat() / vitals.waterTarget.toFloat()
                     Box(
                         modifier = Modifier
@@ -235,7 +205,7 @@ fun VitalsSection(vitals: VitalsInfo) {
 
             // 心率
             VitalGlassCard(
-                modifier = Modifier.width(92.dp).height(92.dp)
+                modifier = Modifier.width(100.dp).height(92.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -255,28 +225,24 @@ fun VitalsSection(vitals: VitalsInfo) {
                             color = TextWhiteSecondary
                         )
                     }
-                    Row(
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.Start
-                    ) {
-                        Text(
-                            text = "${vitals.heartRate}",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextWhite,
-                            lineHeight = 20.sp,
-                            maxLines = 1
-                        )
-                        Text(
-                            text = "bpm",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextWhite.copy(alpha = 0.75f),
-                            modifier = Modifier.padding(start = 3.dp, bottom = 1.dp)
-                        )
-                    }
-                    // Empty space to balance layout
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        buildAnnotatedString {
+                            withStyle(SpanStyle(fontSize = 20.sp, fontWeight = FontWeight.Medium, color = TextWhite)) {
+                                append("${vitals.heartRate}")
+                            }
+                            withStyle(SpanStyle(fontSize = 12.sp, fontWeight = FontWeight.Normal, color = TextWhite.copy(alpha = 0.7f))) {
+                                append(" bpm")
+                            }
+                        },
+                        lineHeight = 22.sp,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = "正常范围",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = AccentGreen
+                    )
                 }
             }
         }
