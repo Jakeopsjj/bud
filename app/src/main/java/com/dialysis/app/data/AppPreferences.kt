@@ -356,4 +356,36 @@ class AppPreferences(context: Context) {
     // Onboarding
     fun isFirstLaunch(): Boolean = prefs.getBoolean("first_launch", true)
     fun setFirstLaunchCompleted() = prefs.edit().putBoolean("first_launch", false).apply()
+
+    // Selected dialysis center
+    fun getSelectedDialysisCenterId(): String? = prefs.getString("selected_center_id", null)
+    fun setSelectedDialysisCenter(centerId: String, name: String, address: String, bedNumber: String = "") {
+        prefs.edit().apply {
+            putString("selected_center_id", centerId)
+            putString("selected_center_name", name)
+            putString("selected_center_address", address)
+            putString("selected_center_bed", bedNumber.ifEmpty { "待安排" })
+        }.apply()
+    }
+    fun getSelectedCenterName(): String = prefs.getString("selected_center_name", "大坪医院血液净化中心") ?: "大坪医院血液净化中心"
+    fun getSelectedCenterAddress(): String = prefs.getString("selected_center_address", "重庆市渝中区大坪长江支路10号") ?: "重庆市渝中区大坪长江支路10号"
+    fun getSelectedBedNumber(): String = prefs.getString("selected_center_bed", "3层15号机位") ?: "3层15号机位"
+    fun setBedNumber(bed: String) = prefs.edit().putString("selected_center_bed", bed).apply()
+
+    // Reminder enabled
+    fun isReminderEnabled(): Boolean = prefs.getBoolean("reminder_enabled", true)
+    fun setReminderEnabled(enabled: Boolean) = prefs.edit().putBoolean("reminder_enabled", enabled).apply()
+
+    // Update next dialysis with selected center
+    fun updateNextDialysisCenter(location: String, bedNumber: String) {
+        val saved = prefs.getString("next_dialysis", null)
+        if (saved != null) {
+            try {
+                val obj = JSONObject(saved)
+                obj.put("location", location)
+                obj.put("bed", bedNumber)
+                prefs.edit().putString("next_dialysis", obj.toString()).apply()
+            } catch (e: Exception) { }
+        }
+    }
 }

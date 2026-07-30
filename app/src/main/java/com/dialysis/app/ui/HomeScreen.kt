@@ -1,22 +1,28 @@
 package com.dialysis.app.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.dialysis.app.data.AppPreferences
+import com.dialysis.app.data.ReminderManager
 import com.dialysis.app.ui.components.*
 import com.dialysis.app.ui.theme.*
 import java.time.LocalDateTime
@@ -30,6 +36,9 @@ fun HomeScreen(
     onTabSelected: (TabItem) -> Unit,
     prefs: AppPreferences
 ) {
+    val context = LocalContext.current
+    val reminderManager = remember { ReminderManager(context) }
+
     var refreshKey by remember { mutableStateOf(0) }
     val refresh = { refreshKey++ }
 
@@ -155,9 +164,14 @@ fun HomeScreen(
         AddMedicationDialog(
             onDismiss = { showAddMedDialog = false },
             onConfirm = { name, time, badge ->
-                prefs.addMedication(name, time, badge)
+                val med = prefs.addMedication(name, time, badge)
+                // Schedule reminder
+                if (prefs.isReminderEnabled()) {
+                    reminderManager.scheduleMedicationReminder(med.id, med.name, med.time, med.badge)
+                }
                 refresh()
                 showAddMedDialog = false
+                Toast.makeText(context, "已添加用药提醒", Toast.LENGTH_SHORT).show()
             }
         )
     }
@@ -179,7 +193,7 @@ fun HomeScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "确定要删除这个用药记录吗？",
+                        text = "确定要删除这个用药记录吗？提醒也会被取消。",
                         fontSize = 13.sp,
                         color = TextWhiteSecondary
                     )
@@ -187,7 +201,7 @@ fun HomeScreen(
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        GlassButton(
+                        CancelButton(
                             text = "取消",
                             onClick = { deleteMedId = null },
                             modifier = Modifier.weight(1f)
@@ -196,31 +210,28 @@ fun HomeScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(40.dp)
-                                .background(Color(0xFFE53E3E).copy(alpha = 0.2f), RoundedCornerShape(14.dp))
-                                .padding(2.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color(0xFFE53E3E).copy(alpha = 0.9f), RoundedCornerShape(12.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                TextButton(
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color(0xFFE53E3E).copy(alpha = 0.85f))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
                                     onClick = {
+                                        // Cancel reminder before delete
+                                        reminderManager.cancelMedicationReminder(deleteMedId!!)
                                         prefs.deleteMedication(deleteMedId!!)
                                         deleteMedId = null
                                         refresh()
-                                    },
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
-                                    Text(
-                                        "删除",
-                                        color = Color.White,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
+                                        Toast.makeText(context, "已删除用药及提醒", Toast.LENGTH_SHORT).show()
+                                    }
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "删除",
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
+                            )
                         }
                     }
                 }
@@ -251,6 +262,12 @@ private fun AddMedicationDialog(
                     fontWeight = FontWeight.Bold,
                     color = TextWhite
                 )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "添加后会自动设置用药提醒",
+                    fontSize = 11.sp,
+                    color = TextWhiteSecondary
+                )
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = medName,
@@ -270,7 +287,7 @@ private fun AddMedicationDialog(
                 OutlinedTextField(
                     value = medTime,
                     onValueChange = { medTime = it },
-                    label = { Text("服用时间（如：08:00/餐前/睡前）", color = TextWhiteSecondary, fontSize = 12.sp) },
+                    label = { Text("服用时间（如：08:00/早餐后/睡前）", color = TextWhiteSecondary, fontSize = 12.sp) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -285,7 +302,7 @@ private fun AddMedicationDialog(
                 OutlinedTextField(
                     value = medBadge,
                     onValueChange = { medBadge = it },
-                    label = { Text("备注（可选，如：注射）", color = TextWhiteSecondary, fontSize = 12.sp) },
+                    label = { Text("备注（可选，如：注射/饭后服用）", color = TextWhiteSecondary, fontSize = 12.sp) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -300,13 +317,13 @@ private fun AddMedicationDialog(
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    GlassButton(
+                    CancelButton(
                         text = "取消",
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     )
-                    GlassButton(
-                        text = "保存",
+                    ConfirmButton(
+                        text = "保存并提醒",
                         onClick = {
                             val name = medName.trim()
                             val time = medTime.trim().ifEmpty { "每日一次" }
@@ -319,5 +336,59 @@ private fun AddMedicationDialog(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CancelButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(40.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White.copy(alpha = 0.15f))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = TextWhite
+        )
+    }
+}
+
+@Composable
+private fun ConfirmButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(40.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(AccentBlue.copy(alpha = 0.5f))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = TextWhite
+        )
     }
 }

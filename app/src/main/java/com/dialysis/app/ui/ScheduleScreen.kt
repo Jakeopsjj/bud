@@ -1,5 +1,7 @@
 package com.dialysis.app.ui
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -17,11 +19,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.dialysis.app.data.AppPreferences
+import com.dialysis.app.data.DialysisCenter
 import com.dialysis.app.data.PrepItem as DataPrepItem
+import com.dialysis.app.data.ReminderManager
 import com.dialysis.app.ui.components.*
 import com.dialysis.app.ui.theme.*
 import java.time.LocalDateTime
@@ -37,31 +43,28 @@ data class UpcomingSchedule(
     val accentBg: Color
 )
 
-data class HistoryRecord(
-    val date: String,
-    val duration: String,
-    val dehydration: String,
-    val dryWeight: String
-)
-
 @Composable
 fun ScheduleScreen(
     selectedTab: TabItem,
     onTabSelected: (TabItem) -> Unit,
     prefs: AppPreferences
 ) {
+    val context = LocalContext.current
     var refreshKey by remember { mutableStateOf(0) }
     val refresh = { refreshKey++ }
 
+    var showCenterPicker by remember { mutableStateOf(false) }
+
     val nextDialysis = remember(refreshKey) { prefs.getNextDialysis() }
     val prepItemsData = remember(refreshKey) { prefs.getPrepItems() }
+    val centers = remember { ReminderManager.getDefaultDialysisCenters() }
+    val selectedCenterId = remember(refreshKey) { prefs.getSelectedDialysisCenterId() }
 
     val now = LocalDateTime.now()
     val totalHours = ChronoUnit.HOURS.between(now, nextDialysis.date).coerceAtLeast(0)
     val daysLeft = totalHours / 24
     val hoursLeft = totalHours % 24
 
-    val dateFmt = DateTimeFormatter.ofPattern("M月d日 E")
     val chineseWeekday = when (nextDialysis.date.dayOfWeek.value) {
         1 -> "周一"
         2 -> "周二"
@@ -85,7 +88,7 @@ fun ScheduleScreen(
                 else -> "下次"
             },
             time = "08:00",
-            location = "协和医院",
+            location = prefs.getSelectedCenterName(),
             accentColor = AccentBlueLight,
             accentBg = AccentBlue.copy(alpha = 0.25f)
         ),
@@ -115,13 +118,45 @@ fun ScheduleScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = "透析日程",
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = TextNight,
-                modifier = Modifier.padding(vertical = 4.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "透析日程",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextNight,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+                // Change location button
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(alpha = 0.12f))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { showCenterPicker = true }
+                        )
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        SmallLocationIcon()
+                        Text(
+                            text = "选择地点",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextNightSecondary
+                        )
+                    }
+                }
+            }
 
             // Next dialysis card with countdown
             LiquidGlassCard(
@@ -243,6 +278,51 @@ fun ScheduleScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // Navigate button
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(AccentBlue.copy(alpha = 0.25f))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = {
+                                        val uri = Uri.parse("geo:0,0?q=${Uri.encode(nextDialysis.location)}")
+                                        val mapIntent = Intent(Intent.ACTION_VIEW, uri)
+                                        mapIntent.setPackage("com.autonavi.minimap")
+                                        if (mapIntent.resolveActivity(context.packageManager) != null) {
+                                            context.startActivity(mapIntent)
+                                        } else {
+                                            // Fallback to Google Maps or any map app
+                                            val fallbackIntent = Intent(Intent.ACTION_VIEW, uri)
+                                            context.startActivity(fallbackIntent)
+                                        }
+                                    }
+                                )
+                                .padding(horizontal = 14.dp, vertical = 7.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                NavigateIcon()
+                                Text(
+                                    text = "导航到医院",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = AccentBlueLight
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -284,6 +364,45 @@ fun ScheduleScreen(
                                 refresh()
                             }
                         )
+                    }
+                }
+            }
+
+            // Nearby dialysis centers section
+            Column {
+                Text(
+                    text = "附近透析中心",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextNightSecondary,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
+                )
+
+                centers.take(5).forEachIndexed { index, center ->
+                    DialysisCenterItem(
+                        center = center,
+                        isSelected = center.id == selectedCenterId,
+                        onSelect = {
+                            prefs.setSelectedDialysisCenter(center.id, center.name, center.address)
+                            prefs.updateNextDialysisCenter(center.name, prefs.getSelectedBedNumber())
+                            refresh()
+                        },
+                        onCall = {
+                            center.phone?.let { phone ->
+                                val callIntent = Intent(Intent.ACTION_DIAL).apply {
+                                    data = Uri.parse("tel:$phone")
+                                }
+                                context.startActivity(callIntent)
+                            }
+                        },
+                        onNavigate = {
+                            val uri = Uri.parse("geo:0,0?q=${Uri.encode(center.name + " " + center.address)}")
+                            val mapIntent = Intent(Intent.ACTION_VIEW, uri)
+                            context.startActivity(mapIntent)
+                        }
+                    )
+                    if (index < minOf(centers.size, 5) - 1) {
+                        Spacer(modifier = Modifier.height(6.dp))
                     }
                 }
             }
@@ -331,6 +450,299 @@ fun ScheduleScreen(
             theme = GlassTheme.Night,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+    }
+
+    // Center picker dialog
+    if (showCenterPicker) {
+        CenterPickerDialog(
+            centers = centers,
+            selectedId = selectedCenterId,
+            onDismiss = { showCenterPicker = false },
+            onSelect = { center ->
+                prefs.setSelectedDialysisCenter(center.id, center.name, center.address)
+                prefs.updateNextDialysisCenter(center.name, "待安排")
+                refresh()
+                showCenterPicker = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun DialysisCenterItem(
+    center: DialysisCenter,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    onCall: () -> Unit,
+    onNavigate: () -> Unit
+) {
+    LiquidGlassCard(
+        theme = GlassTheme.Night,
+        cornerRadius = 16.dp,
+        contentPadding = PaddingValues(12.dp, 12.dp),
+        onClick = onSelect
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Selected indicator / hospital icon
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(
+                        if (isSelected) AccentGreen.copy(alpha = 0.25f)
+                        else Color.White.copy(alpha = 0.1f)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isSelected) {
+                    SelectedCheckIcon()
+                } else {
+                    HospitalIcon()
+                }
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = center.name,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextNight
+                    )
+                    if (center.level != null) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(AccentBlue.copy(alpha = 0.25f))
+                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                        ) {
+                            Text(
+                                text = center.level,
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = AccentBlueLight
+                            )
+                        }
+                    }
+                }
+                Text(
+                    text = center.address,
+                    fontSize = 10.sp,
+                    color = TextNightTertiary,
+                    modifier = Modifier.padding(top = 2.dp),
+                    maxLines = 1
+                )
+                Row(
+                    modifier = Modifier.padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (center.distance != null) {
+                        Text(
+                            text = center.distance,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = AccentGreen
+                        )
+                    }
+                    // Action buttons
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        if (center.phone != null) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color.White.copy(alpha = 0.08f))
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        onClick = onCall
+                                    )
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = "电话",
+                                    fontSize = 9.sp,
+                                    color = TextNightSecondary
+                                )
+                            }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(AccentBlue.copy(alpha = 0.2f))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = onNavigate
+                                )
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = "导航",
+                                fontSize = 9.sp,
+                                color = AccentBlueLight
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CenterPickerDialog(
+    centers: List<DialysisCenter>,
+    selectedId: String?,
+    onDismiss: () -> Unit,
+    onSelect: (DialysisCenter) -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        LiquidGlassCard(
+            theme = GlassTheme.Night,
+            contentPadding = PaddingValues(16.dp, 16.dp),
+            cornerRadius = 24.dp
+        ) {
+            Column(
+                modifier = Modifier.heightIn(max = 420.dp)
+            ) {
+                Text(
+                    text = "选择透析中心",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextNight
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "共 ${centers.size} 家透析中心",
+                    fontSize = 11.sp,
+                    color = TextNightTertiary
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    centers.forEach { center ->
+                        val isSelected = center.id == selectedId
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(
+                                    if (isSelected) AccentBlue.copy(alpha = 0.2f)
+                                    else Color.White.copy(alpha = 0.06f)
+                                )
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = { onSelect(center) }
+                                )
+                                .padding(12.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(
+                                            if (isSelected) AccentGreen.copy(alpha = 0.25f)
+                                            else Color.White.copy(alpha = 0.1f)
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (isSelected) {
+                                        SelectedCheckIcon()
+                                    } else {
+                                        HospitalIcon(iconSize = 14f)
+                                    }
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                    ) {
+                                        Text(
+                                            text = center.name,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = TextNight
+                                        )
+                                        if (center.level != null) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(4.dp))
+                                                    .background(AccentBlue.copy(alpha = 0.25f))
+                                                    .padding(horizontal = 4.dp, vertical = 1.dp)
+                                            ) {
+                                                Text(
+                                                    text = center.level,
+                                                    fontSize = 8.sp,
+                                                    color = AccentBlueLight
+                                                )
+                                            }
+                                        }
+                                    }
+                                    Text(
+                                        text = center.address,
+                                        fontSize = 10.sp,
+                                        color = TextNightTertiary,
+                                        maxLines = 1
+                                    )
+                                    if (center.distance != null) {
+                                        Text(
+                                            text = center.distance,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = AccentGreen,
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color.White.copy(alpha = 0.1f))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onDismiss
+                        )
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "取消",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TextNightSecondary
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -400,6 +812,72 @@ private fun LocationPinIcon(modifier: Modifier = Modifier) {
             center = Offset(w * 0.5f, w * 0.45f),
             style = Stroke(width = 1.8.dp.toPx())
         )
+    }
+}
+
+@Composable
+private fun SmallLocationIcon() {
+    Canvas(modifier = Modifier.size(12.dp)) {
+        val w = size.width; val h = size.height
+        val path = Path().apply {
+            moveTo(w * 0.5f, 0f)
+            cubicTo(w * 0.2f, 0f, 0f, w * 0.3f, 0f, w * 0.5f)
+            cubicTo(0f, w * 0.8f, w * 0.5f, h, w * 0.5f, h)
+            cubicTo(w * 0.5f, h, w, w * 0.8f, w, w * 0.5f)
+            cubicTo(w, w * 0.3f, w * 0.8f, 0f, w * 0.5f, 0f)
+        }
+        drawPath(path, Color.White.copy(alpha = 0.6f), style = Stroke(width = 1.5.dp.toPx()))
+    }
+}
+
+@Composable
+private fun NavigateIcon() {
+    Canvas(modifier = Modifier.size(12.dp)) {
+        val w = size.width; val h = size.height
+        val sw = 1.8.dp.toPx()
+        val color = AccentBlueLight
+        val path = Path().apply {
+            moveTo(w * 0.5f, h * 0.1f)
+            lineTo(w * 0.5f, h * 0.9f)
+            moveTo(w * 0.2f, h * 0.45f)
+            lineTo(w * 0.5f, h * 0.1f)
+            lineTo(w * 0.8f, h * 0.45f)
+        }
+        drawPath(path, color, style = Stroke(width = sw, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    }
+}
+
+@Composable
+private fun HospitalIcon(iconSize: Float = 16f) {
+    Canvas(modifier = Modifier.size(iconSize.dp)) {
+        val w = this.size.width
+        val h = this.size.height
+        val sw = (iconSize / 16f * 1.5f).dp.toPx()
+        val color = Color.White.copy(alpha = 0.6f)
+        val rect = androidx.compose.ui.geometry.Rect(w * 0.15f, h * 0.1f, w * 0.85f, h * 0.9f)
+        drawRoundRect(color, rect.topLeft, rect.size, CornerRadius(w*0.08f), style = Stroke(width = sw))
+        drawLine(color, Offset(w * 0.5f, h * 0.3f), Offset(w * 0.5f, h * 0.7f), strokeWidth = sw, cap = StrokeCap.Round)
+        drawLine(color, Offset(w * 0.3f, h * 0.5f), Offset(w * 0.7f, h * 0.5f), strokeWidth = sw, cap = StrokeCap.Round)
+    }
+}
+
+@Composable
+private fun SelectedCheckIcon() {
+    Canvas(modifier = Modifier.size(16.dp)) {
+        val w = size.width
+        val h = size.height
+        drawCircle(
+            color = AccentGreen,
+            radius = w * 0.5f,
+            center = Offset(w / 2f, h / 2f)
+        )
+        val sw = 2.dp.toPx()
+        val path = Path().apply {
+            moveTo(w * 0.28f, h * 0.52f)
+            lineTo(w * 0.44f, h * 0.68f)
+            lineTo(w * 0.74f, h * 0.34f)
+        }
+        drawPath(path, Color.White, style = Stroke(width = sw, cap = StrokeCap.Round))
     }
 }
 

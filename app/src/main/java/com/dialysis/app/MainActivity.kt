@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.core.view.WindowCompat
 import com.dialysis.app.data.AppPreferences
+import com.dialysis.app.data.ReminderManager
 import com.dialysis.app.ui.*
 import com.dialysis.app.ui.components.TabItem
 import com.dialysis.app.ui.theme.DialysisAppTheme
@@ -19,6 +20,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val prefs = AppPreferences(this)
+
+        // Reschedule all reminders on app start
+        val reminderManager = ReminderManager(this)
+        if (prefs.isReminderEnabled()) {
+            reminderManager.rescheduleAllReminders(prefs)
+        }
+
         setContent {
             DialysisAppTheme {
                 Surface(
