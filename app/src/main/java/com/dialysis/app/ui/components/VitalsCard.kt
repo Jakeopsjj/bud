@@ -80,9 +80,10 @@ fun VitalsSection(vitals: VitalsInfo) {
                         )
                         Text(
                             text = "mmHg",
-                            fontSize = 10.sp,
-                            color = TextWhite.copy(alpha = 0.55f),
-                            modifier = Modifier.padding(top = 1.dp)
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextWhite.copy(alpha = 0.75f),
+                            modifier = Modifier.padding(top = 2.dp)
                         )
                     }
                 }
@@ -117,9 +118,10 @@ fun VitalsSection(vitals: VitalsInfo) {
                         )
                         Text(
                             text = "kg",
-                            fontSize = 10.sp,
-                            color = TextWhite.copy(alpha = 0.55f),
-                            modifier = Modifier.padding(top = 1.dp)
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextWhite.copy(alpha = 0.75f),
+                            modifier = Modifier.padding(top = 2.dp)
                         )
                     }
                 }
@@ -154,9 +156,10 @@ fun VitalsSection(vitals: VitalsInfo) {
                         )
                         Text(
                             text = "ml",
-                            fontSize = 10.sp,
-                            color = TextWhite.copy(alpha = 0.55f),
-                            modifier = Modifier.padding(top = 1.dp)
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextWhite.copy(alpha = 0.75f),
+                            modifier = Modifier.padding(top = 2.dp)
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         val ratio = vitals.waterIntake.toFloat() / vitals.waterTarget.toFloat()
@@ -211,9 +214,10 @@ fun VitalsSection(vitals: VitalsInfo) {
                         )
                         Text(
                             text = "bpm",
-                            fontSize = 10.sp,
-                            color = TextWhite.copy(alpha = 0.55f),
-                            modifier = Modifier.padding(top = 1.dp)
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextWhite.copy(alpha = 0.75f),
+                            modifier = Modifier.padding(top = 2.dp)
                         )
                     }
                 }
