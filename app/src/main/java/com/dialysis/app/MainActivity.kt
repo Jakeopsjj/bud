@@ -14,11 +14,20 @@ import com.dialysis.app.data.ReminderManager
 import com.dialysis.app.ui.*
 import com.dialysis.app.ui.components.TabItem
 import com.dialysis.app.ui.theme.DialysisAppTheme
+import org.osmdroid.config.Configuration
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        // Configure osmdroid to use internal cache (no external storage permission needed)
+        Configuration.getInstance().apply {
+            userAgentValue = packageName
+            osmdroidBasePath = cacheDir
+            osmdroidTileCache = cacheDir.resolve("osmdroid/tiles")
+        }
+
         val prefs = AppPreferences(this)
 
         // Reschedule all reminders on app start
@@ -44,28 +53,41 @@ class MainActivity : ComponentActivity() {
                         )
                     } else {
                         var selectedTab by remember { mutableStateOf(TabItem.Home) }
+                        var showMap by remember { mutableStateOf(false) }
+                        var mapCenterId by remember { mutableStateOf<String?>(null) }
 
-                        when (selectedTab) {
-                            TabItem.Home -> HomeScreen(
-                                selectedTab = selectedTab,
-                                onTabSelected = { selectedTab = it },
-                                prefs = prefs
+                        if (showMap) {
+                            MapScreen(
+                                onBack = { showMap = false },
+                                initialCenterId = mapCenterId
                             )
-                            TabItem.Records -> RecordsScreen(
-                                selectedTab = selectedTab,
-                                onTabSelected = { selectedTab = it },
-                                prefs = prefs
-                            )
-                            TabItem.Schedule -> ScheduleScreen(
-                                selectedTab = selectedTab,
-                                onTabSelected = { selectedTab = it },
-                                prefs = prefs
-                            )
-                            TabItem.Contacts -> ContactsScreen(
-                                selectedTab = selectedTab,
-                                onTabSelected = { selectedTab = it },
-                                prefs = prefs
-                            )
+                        } else {
+                            when (selectedTab) {
+                                TabItem.Home -> HomeScreen(
+                                    selectedTab = selectedTab,
+                                    onTabSelected = { selectedTab = it },
+                                    prefs = prefs
+                                )
+                                TabItem.Records -> RecordsScreen(
+                                    selectedTab = selectedTab,
+                                    onTabSelected = { selectedTab = it },
+                                    prefs = prefs
+                                )
+                                TabItem.Schedule -> ScheduleScreen(
+                                    selectedTab = selectedTab,
+                                    onTabSelected = { selectedTab = it },
+                                    prefs = prefs,
+                                    onOpenMap = { centerId ->
+                                        mapCenterId = centerId
+                                        showMap = true
+                                    }
+                                )
+                                TabItem.Contacts -> ContactsScreen(
+                                    selectedTab = selectedTab,
+                                    onTabSelected = { selectedTab = it },
+                                    prefs = prefs
+                                )
+                            }
                         }
                     }
                 }

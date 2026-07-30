@@ -47,7 +47,8 @@ data class UpcomingSchedule(
 fun ScheduleScreen(
     selectedTab: TabItem,
     onTabSelected: (TabItem) -> Unit,
-    prefs: AppPreferences
+    prefs: AppPreferences,
+    onOpenMap: (String?) -> Unit = {}
 ) {
     val context = LocalContext.current
     var refreshKey by remember { mutableStateOf(0) }
@@ -370,13 +371,33 @@ fun ScheduleScreen(
 
             // Nearby dialysis centers section
             Column {
-                Text(
-                    text = "附近透析中心",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextNightSecondary,
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "附近透析中心",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextNightSecondary
+                    )
+                    // Open map button
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF4FC3F7).copy(alpha = 0.15f))
+                            .clickable { onOpenMap(selectedCenterId ?: centers.first().id) }
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "🗺️ 查看地图",
+                            fontSize = 11.sp,
+                            color = Color(0xFF4FC3F7),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
 
                 centers.take(5).forEachIndexed { index, center ->
                     DialysisCenterItem(
@@ -396,9 +417,7 @@ fun ScheduleScreen(
                             }
                         },
                         onNavigate = {
-                            val uri = Uri.parse("geo:0,0?q=${Uri.encode(center.name + " " + center.address)}")
-                            val mapIntent = Intent(Intent.ACTION_VIEW, uri)
-                            context.startActivity(mapIntent)
+                            onOpenMap(center.id)
                         }
                     )
                     if (index < minOf(centers.size, 5) - 1) {

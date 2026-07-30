@@ -15,7 +15,9 @@ data class DialysisCenter(
     val address: String,
     val phone: String? = null,
     val distance: String? = null,
-    val level: String? = null
+    val level: String? = null,
+    val lat: Double = 0.0,
+    val lng: Double = 0.0
 )
 
 class ReminderManager(private val context: Context) {
@@ -135,16 +137,16 @@ class ReminderManager(private val context: Context) {
     }
 
     companion object {
-        // Pre-populated dialysis centers
+        // Pre-populated dialysis centers (Chongqing area coordinates)
         fun getDefaultDialysisCenters(): List<DialysisCenter> = listOf(
-            DialysisCenter("c1", "大坪医院血液净化中心", "重庆市渝中区大坪长江支路10号", "023-68757123", "1.2km", "三甲"),
-            DialysisCenter("c2", "重庆医科大学附属第一医院血透中心", "重庆市渝中区友谊路1号", "023-89012345", "2.8km", "三甲"),
-            DialysisCenter("c3", "新桥医院肾内科血透室", "重庆市沙坪坝区新桥正街83号", "023-68774000", "5.1km", "三甲"),
-            DialysisCenter("c4", "西南医院血液净化中心", "重庆市沙坪坝区高滩岩正街30号", "023-65318301", "6.3km", "三甲"),
-            DialysisCenter("c5", "重庆市人民医院血透中心", "重庆市渝中区枇杷山正街104号", "023-63513351", "3.5km", "三甲"),
-            DialysisCenter("c6", "重医附二院血液透析中心", "重庆市渝中区临江路76号", "023-63693000", "2.1km", "三甲"),
-            DialysisCenter("c7", "九龙坡区人民医院血透室", "重庆市九龙坡区杨家坪前进路23号", null, "4.2km", "二甲"),
-            DialysisCenter("c8", "江北区第一人民医院肾内科", "重庆市江北区嘉陵一村1号", null, "7.8km", "二甲")
+            DialysisCenter("c1", "大坪医院血液净化中心", "重庆市渝中区大坪长江支路10号", "023-68757123", "1.2km", "三甲", 29.5432, 106.5198),
+            DialysisCenter("c2", "重庆医科大学附属第一医院血透中心", "重庆市渝中区友谊路1号", "023-89012345", "2.8km", "三甲", 29.5521, 106.5123),
+            DialysisCenter("c3", "新桥医院肾内科血透室", "重庆市沙坪坝区新桥正街83号", "023-68774000", "5.1km", "三甲", 29.5389, 106.4367),
+            DialysisCenter("c4", "西南医院血液净化中心", "重庆市沙坪坝区高滩岩正街30号", "023-65318301", "6.3km", "三甲", 29.5456, 106.4234),
+            DialysisCenter("c5", "重庆市人民医院血透中心", "重庆市渝中区枇杷山正街104号", "023-63513351", "3.5km", "三甲", 29.5578, 106.5456),
+            DialysisCenter("c6", "重医附二院血液透析中心", "重庆市渝中区临江路76号", "023-63693000", "2.1km", "三甲", 29.5612, 106.5678),
+            DialysisCenter("c7", "九龙坡区人民医院血透室", "重庆市九龙坡区杨家坪前进路23号", null, "4.2km", "二甲", 29.5123, 106.5012),
+            DialysisCenter("c8", "江北区第一人民医院肾内科", "重庆市江北区嘉陵一村1号", null, "7.8km", "二甲", 29.5789, 106.5345)
         )
     }
 }
