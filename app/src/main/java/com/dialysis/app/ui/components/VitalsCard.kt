@@ -49,11 +49,11 @@ fun VitalsSection(vitals: VitalsInfo) {
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // 血压
             VitalGlassCard(
-                modifier = Modifier.width(120.dp).height(105.dp)
+                modifier = Modifier.width(110.dp).height(98.dp)
             ) {
                 Column(
                     modifier = Modifier.fillMaxSize(),
@@ -61,9 +61,9 @@ fun VitalsSection(vitals: VitalsInfo) {
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
-                        BpIcon(modifier = Modifier.size(13.dp))
+                        BpIcon(modifier = Modifier.size(12.dp))
                         Text(
                             text = "血压",
                             fontSize = 10.sp,
@@ -80,7 +80,7 @@ fun VitalsSection(vitals: VitalsInfo) {
                         )
                         Text(
                             text = "mmHg",
-                            fontSize = 9.sp,
+                            fontSize = 10.sp,
                             color = TextWhite.copy(alpha = 0.55f),
                             modifier = Modifier.padding(top = 1.dp)
                         )
@@ -90,7 +90,7 @@ fun VitalsSection(vitals: VitalsInfo) {
 
             // 体重
             VitalGlassCard(
-                modifier = Modifier.width(120.dp).height(105.dp)
+                modifier = Modifier.width(110.dp).height(98.dp)
             ) {
                 Column(
                     modifier = Modifier.fillMaxSize(),
@@ -98,9 +98,9 @@ fun VitalsSection(vitals: VitalsInfo) {
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
-                        WeightIconSvg(modifier = Modifier.size(13.dp))
+                        WeightIconSvg(modifier = Modifier.size(12.dp))
                         Text(
                             text = "体重",
                             fontSize = 10.sp,
@@ -117,7 +117,7 @@ fun VitalsSection(vitals: VitalsInfo) {
                         )
                         Text(
                             text = "kg",
-                            fontSize = 9.sp,
+                            fontSize = 10.sp,
                             color = TextWhite.copy(alpha = 0.55f),
                             modifier = Modifier.padding(top = 1.dp)
                         )
@@ -127,7 +127,7 @@ fun VitalsSection(vitals: VitalsInfo) {
 
             // 饮水
             VitalGlassCard(
-                modifier = Modifier.width(150.dp).height(105.dp)
+                modifier = Modifier.width(140.dp).height(98.dp)
             ) {
                 Column(
                     modifier = Modifier.fillMaxSize(),
@@ -135,9 +135,9 @@ fun VitalsSection(vitals: VitalsInfo) {
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
-                        WaterDropIcon(modifier = Modifier.size(13.dp))
+                        WaterDropIcon(modifier = Modifier.size(12.dp))
                         Text(
                             text = "饮水",
                             fontSize = 10.sp,
@@ -154,7 +154,7 @@ fun VitalsSection(vitals: VitalsInfo) {
                         )
                         Text(
                             text = "ml",
-                            fontSize = 9.sp,
+                            fontSize = 10.sp,
                             color = TextWhite.copy(alpha = 0.55f),
                             modifier = Modifier.padding(top = 1.dp)
                         )
@@ -163,7 +163,7 @@ fun VitalsSection(vitals: VitalsInfo) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(4.dp)
+                                .height(3.dp)
                                 .background(ProgressTrack, RoundedCornerShape(2.dp))
                         ) {
                             Box(
@@ -184,7 +184,7 @@ fun VitalsSection(vitals: VitalsInfo) {
 
             // 心率
             VitalGlassCard(
-                modifier = Modifier.width(120.dp).height(105.dp)
+                modifier = Modifier.width(110.dp).height(98.dp)
             ) {
                 Column(
                     modifier = Modifier.fillMaxSize(),
@@ -192,9 +192,9 @@ fun VitalsSection(vitals: VitalsInfo) {
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
-                        HeartRateIcon(modifier = Modifier.size(13.dp))
+                        HeartRateIcon(modifier = Modifier.size(12.dp))
                         Text(
                             text = "心率",
                             fontSize = 10.sp,
@@ -211,7 +211,7 @@ fun VitalsSection(vitals: VitalsInfo) {
                         )
                         Text(
                             text = "bpm",
-                            fontSize = 9.sp,
+                            fontSize = 10.sp,
                             color = TextWhite.copy(alpha = 0.55f),
                             modifier = Modifier.padding(top = 1.dp)
                         )
