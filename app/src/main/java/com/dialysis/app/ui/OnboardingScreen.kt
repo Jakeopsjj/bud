@@ -1,7 +1,10 @@
 package com.dialysis.app.ui
 
 import android.Manifest
+import android.app.AlarmManager
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -16,8 +19,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
@@ -35,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.dialysis.app.ui.theme.*
 
 data class OnboardingPage(
@@ -67,8 +73,8 @@ fun OnboardingScreen(onComplete: () -> Unit) {
             ),
             OnboardingPage(
                 title = "用药提醒不漏服",
-                subtitle = "透析前准备清单",
-                description = "设定用药时间，按时提醒服药。透析前自动生成准备清单，证件、药品、器材一样不落下。",
+                subtitle = "透析前准备清单 · 闹钟提醒",
+                description = "设定用药时间，精确闹钟提醒服药。透析前自动生成准备清单，证件、药品、器材一样不落下。",
                 iconType = OnboardingIcon.Medication
             ),
             OnboardingPage(
@@ -80,7 +86,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
             OnboardingPage(
                 title = "开启必要权限",
                 subtitle = "为正常使用应用功能",
-                description = "请允许以下权限，确保电话呼叫和用药提醒功能正常工作。您也可以稍后在设置中修改。",
+                description = "请允许以下权限，确保电话呼叫、用药闹钟提醒、定位附近医院等功能正常工作。您也可以稍后在设置中修改。",
                 iconType = OnboardingIcon.Permissions
             )
         )
@@ -88,22 +94,90 @@ fun OnboardingScreen(onComplete: () -> Unit) {
 
     var currentPage by remember { mutableStateOf(0) }
 
-    // Permission states
-    var callPhoneGranted by remember { mutableStateOf(false) }
-    var notificationsGranted by remember { mutableStateOf(false) }
+    // Check initial permission states
+    fun checkCallPhone(): Boolean = ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED
+    fun checkNotifications(): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+    } else true
+    fun checkLocation(): Boolean = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    fun checkCalendar(): Boolean = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
+    fun checkExactAlarm(): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        am.canScheduleExactAlarms()
+    } else true
+
+    var callPhoneGranted by remember { mutableStateOf(checkCallPhone()) }
+    var notificationsGranted by remember { mutableStateOf(checkNotifications()) }
+    var locationGranted by remember { mutableStateOf(checkLocation()) }
+    var calendarGranted by remember { mutableStateOf(checkCalendar()) }
+    var exactAlarmGranted by remember { mutableStateOf(checkExactAlarm()) }
 
     // Permission launchers
-    val callPhoneLauncher = rememberLauncherForActivityResult(
+    val singlePermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { granted -> callPhoneGranted = granted }
+    ) { /* Will check on resume via re-launch or settings */ }
 
-    val notificationsLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { granted -> notificationsGranted = granted }
+    val multiplePermissionsLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        callPhoneGranted = checkCallPhone()
+        notificationsGranted = checkNotifications()
+        locationGranted = checkLocation()
+        calendarGranted = checkCalendar()
+        exactAlarmGranted = checkExactAlarm()
+    }
 
     val settingsLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
-    ) { }
+    ) {
+        callPhoneGranted = checkCallPhone()
+        notificationsGranted = checkNotifications()
+        locationGranted = checkLocation()
+        calendarGranted = checkCalendar()
+        exactAlarmGranted = checkExactAlarm()
+    }
+
+    // Re-check permissions when returning to permissions page
+    LaunchedEffect(currentPage) {
+        if (currentPage == pages.size - 1) {
+            callPhoneGranted = checkCallPhone()
+            notificationsGranted = checkNotifications()
+            locationGranted = checkLocation()
+            calendarGranted = checkCalendar()
+            exactAlarmGranted = checkExactAlarm()
+        }
+    }
+
+    fun requestCallPhone() {
+        singlePermissionLauncher.launch(Manifest.permission.CALL_PHONE)
+    }
+    fun requestNotifications() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            singlePermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            notificationsGranted = true
+        }
+    }
+    fun requestLocation() {
+        multiplePermissionsLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+    }
+    fun requestCalendar() {
+        multiplePermissionsLauncher.launch(arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR))
+    }
+    fun requestExactAlarm() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
+                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                intent.data = Uri.parse("package:${context.packageName}")
+                settingsLauncher.launch(intent)
+            } catch (e: Exception) {
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}"))
+                settingsLauncher.launch(intent)
+            }
+        } else {
+            exactAlarmGranted = true
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -114,22 +188,22 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                 )
             )
     ) {
-        // Decorative clouds
         CloudDecoration()
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp)
-                .statusBarsPadding(),
+                .statusBarsPadding()
+                .navigationBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.weight(0.5f))
+            Spacer(modifier = Modifier.weight(0.3f))
 
             // Page indicator
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(bottom = 32.dp)
+                modifier = Modifier.padding(bottom = 24.dp)
             ) {
                 pages.forEachIndexed { index, _ ->
                     Box(
@@ -163,23 +237,14 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                         page = pages[currentPage],
                         callPhoneGranted = callPhoneGranted,
                         notificationsGranted = notificationsGranted,
-                        onRequestCallPhone = {
-                            callPhoneLauncher.launch(Manifest.permission.CALL_PHONE)
-                        },
-                        onRequestNotifications = {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                notificationsLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            } else {
-                                notificationsGranted = true
-                            }
-                        },
-                        onOpenSettings = {
-                            val intent = Intent(
-                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                                Uri.parse("package:${context.packageName}")
-                            )
-                            settingsLauncher.launch(intent)
-                        }
+                        locationGranted = locationGranted,
+                        calendarGranted = calendarGranted,
+                        exactAlarmGranted = exactAlarmGranted,
+                        onRequestCallPhone = ::requestCallPhone,
+                        onRequestNotifications = ::requestNotifications,
+                        onRequestLocation = ::requestLocation,
+                        onRequestCalendar = ::requestCalendar,
+                        onRequestExactAlarm = ::requestExactAlarm
                     )
                 }
             }
@@ -190,11 +255,10 @@ fun OnboardingScreen(onComplete: () -> Unit) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 48.dp),
+                    .padding(bottom = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Skip button
                 if (currentPage < pages.size - 1) {
                     TextButton(onClick = {
                         currentPage = pages.size - 1
@@ -209,7 +273,6 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                     Spacer(modifier = Modifier.width(64.dp))
                 }
 
-                // Next/Get Started button
                 GlassButton(
                     text = if (currentPage < pages.size - 1) "下一步" else "开始使用",
                     onClick = {
@@ -230,69 +293,117 @@ private fun OnboardingPageContent(
     page: OnboardingPage,
     callPhoneGranted: Boolean,
     notificationsGranted: Boolean,
+    locationGranted: Boolean,
+    calendarGranted: Boolean,
+    exactAlarmGranted: Boolean,
     onRequestCallPhone: () -> Unit,
     onRequestNotifications: () -> Unit,
-    onOpenSettings: () -> Unit
+    onRequestLocation: () -> Unit,
+    onRequestCalendar: () -> Unit,
+    onRequestExactAlarm: () -> Unit
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Icon
-        OnboardingIcon(type = page.iconType)
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Title
-        Text(
-            text = page.title,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = TextWhite,
-            textAlign = TextAlign.Center,
-            lineHeight = 34.sp
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Subtitle
-        Text(
-            text = page.subtitle,
-            fontSize = 15.sp,
-            color = TextWhiteSecondary,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Description
-        Text(
-            text = page.description,
-            fontSize = 14.sp,
-            color = TextWhiteTertiary,
-            textAlign = TextAlign.Center,
-            lineHeight = 22.sp,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-
-        // Permission items (only on last page)
-        if (page.iconType == OnboardingIcon.Permissions) {
-            Spacer(modifier = Modifier.height(24.dp))
-            PermissionItem(
-                icon = { PhoneIcon() },
-                title = "电话权限",
-                description = "用于拨打紧急联系电话和120急救",
-                granted = callPhoneGranted,
-                onRequest = onRequestCallPhone,
-                onOpenSettings = onOpenSettings
+    if (page.iconType == OnboardingIcon.Permissions) {
+        // Permissions page - scrollable
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.verticalScroll(rememberScrollState())
+        ) {
+            OnboardingIcon(type = page.iconType)
+            Spacer(modifier = Modifier.height(20.dp))
+            Text(
+                text = page.title,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextWhite,
+                textAlign = TextAlign.Center,
+                lineHeight = 32.sp
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = page.subtitle,
+                fontSize = 14.sp,
+                color = TextWhiteSecondary,
+                textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = page.description,
+                fontSize = 13.sp,
+                color = TextWhiteTertiary,
+                textAlign = TextAlign.Center,
+                lineHeight = 20.sp,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            PermissionItem(
+                icon = { AlarmIcon() },
+                title = "精确闹钟",
+                description = "用药时间准点提醒，不错过服药",
+                granted = exactAlarmGranted,
+                onRequest = onRequestExactAlarm
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             PermissionItem(
                 icon = { BellIcon() },
                 title = "通知权限",
-                description = "用于发送用药提醒和透析时间提醒",
+                description = "接收提醒消息和通知",
                 granted = notificationsGranted,
-                onRequest = onRequestNotifications,
-                onOpenSettings = onOpenSettings
+                onRequest = onRequestNotifications
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            PermissionItem(
+                icon = { PhoneIcon() },
+                title = "电话权限",
+                description = "拨打紧急联系电话和120急救",
+                granted = callPhoneGranted,
+                onRequest = onRequestCallPhone
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            PermissionItem(
+                icon = { LocationIcon() },
+                title = "定位权限",
+                description = "查找附近透析中心和医院导航",
+                granted = locationGranted,
+                onRequest = onRequestLocation
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            PermissionItem(
+                icon = { CalendarIcon() },
+                title = "日历权限",
+                description = "同步透析日程到手机日历",
+                granted = calendarGranted,
+                onRequest = onRequestCalendar
+            )
+        }
+    } else {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            OnboardingIcon(type = page.iconType)
+            Spacer(modifier = Modifier.height(32.dp))
+            Text(
+                text = page.title,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextWhite,
+                textAlign = TextAlign.Center,
+                lineHeight = 34.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = page.subtitle,
+                fontSize = 15.sp,
+                color = TextWhiteSecondary,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = page.description,
+                fontSize = 14.sp,
+                color = TextWhiteTertiary,
+                textAlign = TextAlign.Center,
+                lineHeight = 22.sp,
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
         }
     }
@@ -304,27 +415,26 @@ private fun PermissionItem(
     title: String,
     description: String,
     granted: Boolean,
-    onRequest: () -> Unit,
-    onOpenSettings: () -> Unit
+    onRequest: () -> Unit
 ) {
     GlassSurface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(64.dp)
+            .height(60.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Box(
-                    modifier = Modifier.size(36.dp),
+                    modifier = Modifier.size(34.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     icon()
@@ -332,25 +442,24 @@ private fun PermissionItem(
                 Column {
                     Text(
                         text = title,
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
                         color = TextWhite
                     )
                     Text(
                         text = description,
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         color = TextWhiteTertiary
                     )
                 }
             }
 
-            // Status / Action button
             if (granted) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
-                    Canvas(modifier = Modifier.size(16.dp)) {
+                    Canvas(modifier = Modifier.size(14.dp)) {
                         val path = Path().apply {
                             moveTo(size.width * 0.15f, size.height * 0.5f)
                             lineTo(size.width * 0.4f, size.height * 0.75f)
@@ -360,7 +469,7 @@ private fun PermissionItem(
                     }
                     Text(
                         text = "已允许",
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         color = AccentGreen,
                         fontWeight = FontWeight.Medium
                     )
@@ -368,18 +477,18 @@ private fun PermissionItem(
             } else {
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(
                             Brush.horizontalGradient(
                                 colors = listOf(AccentBlue, AccentBlueLight)
                             )
                         )
                         .clickable { onRequest() }
-                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                        .padding(horizontal = 12.dp, vertical = 5.dp)
                 ) {
                     Text(
                         text = "去开启",
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.White
                     )
@@ -396,7 +505,7 @@ private fun GlassSurface(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(14.dp))
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
@@ -409,7 +518,7 @@ private fun GlassSurface(
             .border(
                 width = 0.5.dp,
                 color = GlassBorder,
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(14.dp)
             ),
         content = content
     )
@@ -446,7 +555,7 @@ private fun GlassButton(
 private fun OnboardingIcon(type: OnboardingIcon) {
     Box(
         modifier = Modifier
-            .size(120.dp)
+            .size(100.dp)
             .clip(CircleShape)
             .background(
                 Brush.radialGradient(
@@ -460,8 +569,8 @@ private fun OnboardingIcon(type: OnboardingIcon) {
     ) {
         Box(
             modifier = Modifier
-                .size(80.dp)
-                .clip(RoundedCornerShape(24.dp))
+                .size(72.dp)
+                .clip(RoundedCornerShape(22.dp))
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
@@ -473,7 +582,7 @@ private fun OnboardingIcon(type: OnboardingIcon) {
                 .border(
                     width = 0.5.dp,
                     color = GlassBorder,
-                    shape = RoundedCornerShape(24.dp)
+                    shape = RoundedCornerShape(22.dp)
                 ),
             contentAlignment = Alignment.Center
         ) {
@@ -490,10 +599,9 @@ private fun OnboardingIcon(type: OnboardingIcon) {
 
 @Composable
 private fun WelcomeIcon() {
-    Canvas(modifier = Modifier.size(40.dp)) {
+    Canvas(modifier = Modifier.size(36.dp)) {
         val cx = size.width / 2
         val cy = size.height / 2
-        // Heart
         val path = Path().apply {
             moveTo(cx, cy + size.height * 0.28f)
             cubicTo(cx - size.width * 0.45f, cy, cx - size.width * 0.3f, cy - size.height * 0.3f, cx, cy - size.height * 0.05f)
@@ -501,15 +609,14 @@ private fun WelcomeIcon() {
             close()
         }
         drawPath(path, AccentRedSoft)
-        // Plus sign
-        drawLine(Color.White, Offset(cx - 6.dp.toPx(), cy + size.height * 0.05f), Offset(cx + 6.dp.toPx(), cy + size.height * 0.05f), strokeWidth = 2.5f, cap = StrokeCap.Round)
-        drawLine(Color.White, Offset(cx, cy + size.height * 0.05f - 6.dp.toPx()), Offset(cx, cy + size.height * 0.05f + 6.dp.toPx()), strokeWidth = 2.5f, cap = StrokeCap.Round)
+        drawLine(Color.White, Offset(cx - 5.dp.toPx(), cy + size.height * 0.05f), Offset(cx + 5.dp.toPx(), cy + size.height * 0.05f), strokeWidth = 2.5f, cap = StrokeCap.Round)
+        drawLine(Color.White, Offset(cx, cy + size.height * 0.05f - 5.dp.toPx()), Offset(cx, cy + size.height * 0.05f + 5.dp.toPx()), strokeWidth = 2.5f, cap = StrokeCap.Round)
     }
 }
 
 @Composable
 private fun VitalsIcon() {
-    Canvas(modifier = Modifier.size(40.dp)) {
+    Canvas(modifier = Modifier.size(36.dp)) {
         val midY = size.height * 0.5f
         val path = Path().apply {
             moveTo(0f, midY)
@@ -527,38 +634,31 @@ private fun VitalsIcon() {
 
 @Composable
 private fun MedicationIcon() {
-    Canvas(modifier = Modifier.size(40.dp)) {
+    Canvas(modifier = Modifier.size(36.dp)) {
         val w = size.width
         val h = size.height
-        val pillW = w * 0.55f
-        val pillH = h * 0.25f
         val cx = w / 2
         val cy = h / 2
-        val left = cx - pillW / 2
-        val top = cy - pillH / 2
-        // Pill shape
-        drawRoundRect(
-            color = AccentGreen,
-            topLeft = Offset(left, top),
-            size = androidx.compose.ui.geometry.Size(pillW, pillH),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(pillH / 2, pillH / 2)
-        )
-        // Divider line
-        drawLine(Color.White.copy(alpha = 0.5f), Offset(cx, top), Offset(cx, top + pillH), strokeWidth = 1.5f)
+        // Alarm clock
+        drawCircle(AccentGreen, w * 0.3f, Offset(cx, cy), style = Stroke(width = 2.5f))
+        // Clock hands
+        drawLine(Color.White, Offset(cx, cy), Offset(cx, cy - h * 0.18f), strokeWidth = 2.5f, cap = StrokeCap.Round)
+        drawLine(Color.White, Offset(cx, cy), Offset(cx + w * 0.15f, cy), strokeWidth = 2.5f, cap = StrokeCap.Round)
+        // Top bells
+        drawLine(AccentGreen, Offset(cx - w * 0.22f, cy - h * 0.22f), Offset(cx - w * 0.3f, cy - h * 0.32f), strokeWidth = 2.5f, cap = StrokeCap.Round)
+        drawLine(AccentGreen, Offset(cx + w * 0.22f, cy - h * 0.22f), Offset(cx + w * 0.3f, cy - h * 0.32f), strokeWidth = 2.5f, cap = StrokeCap.Round)
     }
 }
 
 @Composable
 private fun EmergencyIcon() {
-    Canvas(modifier = Modifier.size(40.dp)) {
+    Canvas(modifier = Modifier.size(36.dp)) {
         val w = size.width
         val h = size.height
         val cx = w / 2
         val cy = h / 2
         val r = w * 0.32f
-        // Circle
         drawCircle(AccentRed, r, Offset(cx, cy))
-        // SOS cross (plus)
         val crossW = r * 0.7f
         val crossH = r * 0.2f
         drawRoundRect(Color.White, Offset(cx - crossW/2, cy - crossH/2), androidx.compose.ui.geometry.Size(crossW, crossH), cornerRadius = androidx.compose.ui.geometry.CornerRadius(crossH/2))
@@ -568,7 +668,7 @@ private fun EmergencyIcon() {
 
 @Composable
 private fun ShieldIcon() {
-    Canvas(modifier = Modifier.size(40.dp)) {
+    Canvas(modifier = Modifier.size(36.dp)) {
         val w = size.width
         val h = size.height
         val cx = w / 2
@@ -582,7 +682,6 @@ private fun ShieldIcon() {
             close()
         }
         drawPath(path, AccentBlue)
-        // Checkmark
         val checkPath = Path().apply {
             moveTo(cx - w * 0.15f, h * 0.5f)
             lineTo(cx - w * 0.02f, h * 0.62f)
@@ -592,9 +691,11 @@ private fun ShieldIcon() {
     }
 }
 
+// ===== Permission Icons =====
+
 @Composable
 private fun PhoneIcon() {
-    Canvas(modifier = Modifier.size(20.dp)) {
+    Canvas(modifier = Modifier.size(18.dp)) {
         val w = size.width
         val h = size.height
         val path = Path().apply {
@@ -615,11 +716,10 @@ private fun PhoneIcon() {
 
 @Composable
 private fun BellIcon() {
-    Canvas(modifier = Modifier.size(20.dp)) {
+    Canvas(modifier = Modifier.size(18.dp)) {
         val w = size.width
         val h = size.height
         val cx = w / 2
-        // Bell body
         val path = Path().apply {
             moveTo(cx, h * 0.1f)
             cubicTo(cx - w * 0.3f, h * 0.1f, cx - w * 0.32f, h * 0.45f, cx - w * 0.35f, h * 0.55f)
@@ -630,16 +730,61 @@ private fun BellIcon() {
             close()
         }
         drawPath(path, AccentOrange)
-        // Bell bottom
-        drawRect(Color.White.copy(alpha = 0f))
-        drawRoundRect(
-            AccentOrange,
-            Offset(cx - w * 0.06f, h * 0.65f),
-            androidx.compose.ui.geometry.Size(w * 0.12f, h * 0.15f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.06f)
-        )
-        // Ringer dot
+        drawRoundRect(AccentOrange, Offset(cx - w * 0.06f, h * 0.65f), androidx.compose.ui.geometry.Size(w * 0.12f, h * 0.15f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.06f))
         drawCircle(AccentRed, w * 0.06f, Offset(cx + w * 0.2f, h * 0.2f))
+    }
+}
+
+@Composable
+private fun AlarmIcon() {
+    Canvas(modifier = Modifier.size(18.dp)) {
+        val w = size.width
+        val h = size.height
+        val cx = w / 2
+        val cy = h * 0.55f
+        drawCircle(AccentPurple, w * 0.3f, Offset(cx, cy), style = Stroke(width = 2f))
+        drawLine(AccentPurple, Offset(cx, cy), Offset(cx, cy - h * 0.18f), strokeWidth = 2f, cap = StrokeCap.Round)
+        drawLine(AccentPurple, Offset(cx, cy), Offset(cx + w * 0.13f, cy + h * 0.02f), strokeWidth = 2f, cap = StrokeCap.Round)
+        drawLine(AccentPurple, Offset(cx - w * 0.22f, cy - h * 0.22f), Offset(cx - w * 0.32f, cy - h * 0.35f), strokeWidth = 2f, cap = StrokeCap.Round)
+        drawLine(AccentPurple, Offset(cx + w * 0.22f, cy - h * 0.22f), Offset(cx + w * 0.32f, cy - h * 0.35f), strokeWidth = 2f, cap = StrokeCap.Round)
+    }
+}
+
+@Composable
+private fun LocationIcon() {
+    Canvas(modifier = Modifier.size(18.dp)) {
+        val w = size.width
+        val h = size.height
+        val cx = w / 2
+        val pinPath = Path().apply {
+            moveTo(cx, h * 0.05f)
+            cubicTo(cx - w * 0.4f, h * 0.05f, cx - w * 0.4f, h * 0.45f, cx, h * 0.9f)
+            cubicTo(cx + w * 0.4f, h * 0.45f, cx + w * 0.4f, h * 0.05f, cx, h * 0.05f)
+            close()
+        }
+        drawPath(pinPath, AccentBlueLight)
+        drawCircle(Color.White, w * 0.1f, Offset(cx, h * 0.35f))
+    }
+}
+
+@Composable
+private fun CalendarIcon() {
+    Canvas(modifier = Modifier.size(18.dp)) {
+        val w = size.width
+        val h = size.height
+        val l = w * 0.1f
+        val t = h * 0.15f
+        val r = w * 0.9f
+        val b = h * 0.85f
+        drawRoundRect(AccentOrangeSoft, Offset(l, t), androidx.compose.ui.geometry.Size(r - l, b - t), cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f))
+        // Top bar
+        drawRect(Color.White.copy(alpha = 0.3f), Offset(l, t), androidx.compose.ui.geometry.Size(r - l, h * 0.15f))
+        // Tabs
+        drawLine(AccentOrangeSoft, Offset(w * 0.3f, t), Offset(w * 0.3f, t - h * 0.1f), strokeWidth = 2f, cap = StrokeCap.Round)
+        drawLine(AccentOrangeSoft, Offset(w * 0.7f, t), Offset(w * 0.7f, t - h * 0.1f), strokeWidth = 2f, cap = StrokeCap.Round)
+        // Date dots
+        drawCircle(Color.White, w * 0.05f, Offset(w * 0.35f, h * 0.55f))
+        drawCircle(Color.White, w * 0.05f, Offset(w * 0.65f, h * 0.55f))
     }
 }
 
@@ -650,20 +795,8 @@ private fun CloudDecoration() {
     Canvas(modifier = Modifier.fillMaxSize()) {
         val w = size.width
         val h = size.height
-        drawCircle(
-            color = Color.White.copy(alpha = 0.08f),
-            radius = w * 0.35f,
-            center = Offset(w * 0.2f, h * 0.15f)
-        )
-        drawCircle(
-            color = Color.White.copy(alpha = 0.06f),
-            radius = w * 0.25f,
-            center = Offset(w * 0.85f, h * 0.25f)
-        )
-        drawCircle(
-            color = Color.White.copy(alpha = 0.05f),
-            radius = w * 0.4f,
-            center = Offset(w * 0.5f, h * 0.8f)
-        )
+        drawCircle(Color.White.copy(alpha = 0.08f), w * 0.35f, Offset(w * 0.2f, h * 0.15f))
+        drawCircle(Color.White.copy(alpha = 0.06f), w * 0.25f, Offset(w * 0.85f, h * 0.25f))
+        drawCircle(Color.White.copy(alpha = 0.05f), w * 0.4f, Offset(w * 0.5f, h * 0.8f))
     }
 }

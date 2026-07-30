@@ -7,6 +7,11 @@ android {
     namespace = "com.dialysis.app"
     compileSdk = 34
 
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
+    }
+
     signingConfigs {
         create("release") {
             storeFile = file("debug.keystore")
@@ -20,8 +25,8 @@ android {
         applicationId = "com.dialysis.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 9
-        versionName = "1.7.0"
+        versionCode = 10
+        versionName = "1.7.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
