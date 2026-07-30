@@ -5,12 +5,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.core.view.WindowCompat
 import com.dialysis.app.data.AppPreferences
 import com.dialysis.app.ui.*
 import com.dialysis.app.ui.components.TabItem
@@ -19,6 +17,7 @@ import com.dialysis.app.ui.theme.DialysisAppTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         val prefs = AppPreferences(this)
         setContent {
             DialysisAppTheme {
@@ -26,29 +25,40 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = Color.Transparent
                 ) {
-                    var selectedTab by remember { mutableStateOf(TabItem.Home) }
+                    val isFirstLaunch = remember { mutableStateOf(prefs.isFirstLaunch()) }
 
-                    when (selectedTab) {
-                        TabItem.Home -> HomeScreen(
-                            selectedTab = selectedTab,
-                            onTabSelected = { selectedTab = it },
-                            prefs = prefs
+                    if (isFirstLaunch.value) {
+                        OnboardingScreen(
+                            onComplete = {
+                                prefs.setFirstLaunchCompleted()
+                                isFirstLaunch.value = false
+                            }
                         )
-                        TabItem.Records -> RecordsScreen(
-                            selectedTab = selectedTab,
-                            onTabSelected = { selectedTab = it },
-                            prefs = prefs
-                        )
-                        TabItem.Schedule -> ScheduleScreen(
-                            selectedTab = selectedTab,
-                            onTabSelected = { selectedTab = it },
-                            prefs = prefs
-                        )
-                        TabItem.Contacts -> ContactsScreen(
-                            selectedTab = selectedTab,
-                            onTabSelected = { selectedTab = it },
-                            prefs = prefs
-                        )
+                    } else {
+                        var selectedTab by remember { mutableStateOf(TabItem.Home) }
+
+                        when (selectedTab) {
+                            TabItem.Home -> HomeScreen(
+                                selectedTab = selectedTab,
+                                onTabSelected = { selectedTab = it },
+                                prefs = prefs
+                            )
+                            TabItem.Records -> RecordsScreen(
+                                selectedTab = selectedTab,
+                                onTabSelected = { selectedTab = it },
+                                prefs = prefs
+                            )
+                            TabItem.Schedule -> ScheduleScreen(
+                                selectedTab = selectedTab,
+                                onTabSelected = { selectedTab = it },
+                                prefs = prefs
+                            )
+                            TabItem.Contacts -> ContactsScreen(
+                                selectedTab = selectedTab,
+                                onTabSelected = { selectedTab = it },
+                                prefs = prefs
+                            )
+                        }
                     }
                 }
             }

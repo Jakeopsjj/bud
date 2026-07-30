@@ -352,4 +352,8 @@ class AppPreferences(context: Context) {
     // Dry weight
     fun getDryWeight(): Float = prefs.getFloat("dry_weight", 62.5f)
     fun setDryWeight(weight: Float) = prefs.edit().putFloat("dry_weight", weight).apply()
+
+    // Onboarding
+    fun isFirstLaunch(): Boolean = prefs.getBoolean("first_launch", true)
+    fun setFirstLaunchCompleted() = prefs.edit().putBoolean("first_launch", false).apply()
 }
